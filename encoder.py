@@ -1,5 +1,5 @@
 import numpy as np
-
+from PIL import Image
 
 def get_sub_images(image, box_size):
     """
@@ -27,7 +27,7 @@ def dct(sub_image):
          with same size as input
     """
     #Extract the box size of the sub_image
-    box_size, dummy = sub_image.size
+    box_size = sub_image.size[0]
     #initialize x and y ranges to be used for the basis functions.
     x = y = np.arange(box_size) 
     #Calculate the basis functions
