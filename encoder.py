@@ -1,5 +1,7 @@
 import numpy as np
 from PIL import Image
+import pandas as pd
+from huffman import encode as h_encode
 
 def get_sub_images(image, box_size):
     """
@@ -110,3 +112,7 @@ def huffman_encode(rlcoded):
         huffcoded : List or String of 0s and 1s code to be sent or stored
         code_dict (dict): dict of symbol : code in binary
     """
+    counts_dict = dict(pd.Series(rlcoded).value_counts)
+    code_dict = h_encode(counts_dict)
+    huffcoded = ''.join([code_dict[i] for i in rlcoded]) # list of strings to one joined string
+    return huffcoded, code_dict
