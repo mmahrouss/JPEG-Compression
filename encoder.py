@@ -1,5 +1,5 @@
 import numpy as np
-
+from PIL import Image
 
 def get_sub_images(image, box_size):
     """
@@ -26,6 +26,22 @@ def dct(sub_image):
         transformed_sub_image (numpy ndarray): image in DCT domain
          with same size as input
     """
+    #Extract the box size of the sub_image
+    box_size = sub_image.size[0]
+    #initialize x and y ranges to be used for the basis functions.
+    x = y = np.arange(box_size) 
+    #Calculate the basis functions
+    basis_functions = lambda u,v : np.dot(np.cos((2*x + 1)*u*np.pi/16).reshape(-1,1),
+                                          np.cos((2*y.T + 1)*v*np.pi/16).reshape(1,-1))
+    transformed_sub_image = np.zeros((box_size,box_size))
+    #Perform DCT on the sub_image
+    for u in range(box_size):
+        for v in range(box_size):
+            transformed_sub_image[u,v] = np.sum(basis_functions(u,v)*sub_image)/16
+    #Scale down rows and columns by 2 except element(0,0) by 4.        
+    transformed_sub_image[0,:] = transformed_sub_image[0,:]/2
+    transformed_sub_image[:,0] = transformed_sub_image[:,0]/2
+    return dct
 
 
 def apply_dct_to_all(subdivded_image):
