@@ -59,11 +59,13 @@ def dct(sub_image):
     b = sub_image.shape[0]  # block size
     i = j = np.arange(b)
     # basis function
+
     def basis(u, v):
         return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
-          np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
     # scaling function
-    def scale(idx): 
+
+    def scale(idx):
         return 2 if idx == 0 else 1
     outblock = np.zeros((b, b))
 
