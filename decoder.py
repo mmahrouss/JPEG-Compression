@@ -1,8 +1,9 @@
 import numpy as np
-import pandas as pd 
+import pandas as pd
 from huffman import encode as h_encode
 
-def get_reconstructed_image(divided_image, box_size = 8):
+
+def get_reconstructed_image(divided_image, box_size=8):
     """
     Gets an array of (box_size,box_size) pixels
     and returns the reconstructed image
@@ -14,9 +15,7 @@ def get_reconstructed_image(divided_image, box_size = 8):
         of divided images.
 
     """
-    
 
-    
 
 def idct(dct_values):
     """
@@ -27,7 +26,6 @@ def idct(dct_values):
         sub_image (numpy ndarray): image in pixels
          with same size as input
     """
-    
 
 
 def apply_idct_to_all(subdivded_dct_values):
@@ -56,8 +54,6 @@ def dequantize(quantized, quantization_table):
         dct_values (numpy ndarray): array of DCT values.
           same shape as dct_values but element type ints
     """
-    
-
 
 
 def deserialize(serialized):
@@ -71,7 +67,6 @@ def deserialize(serialized):
           - should have a shape of (X, box_size, box_size, n_channels)
            with dtype Int
     """
-    
 
 
 def run_length_decode(rlcoded):
@@ -84,6 +79,19 @@ def run_length_decode(rlcoded):
         serialized (numpy ndarray): 1d array
           has shape (X*box_size*box_size*n_channels,)
     """
+    # Local Variables
+    serialized = []
+    i = 0
+    # Local Variables
+    while i < len(rlcoded):
+        if serialized[i] == 0:
+            serialized.extend([0]*rlcoded[i+1])
+            i += 2
+        else:
+            serialized.append(rlcoded[i])
+            i += 1
+    return np.asarray(serialized)
+
 
 def huffman_decode(huffcoded, code_dict):
     """

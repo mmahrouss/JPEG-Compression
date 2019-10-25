@@ -163,6 +163,28 @@ def run_length_code(serialized):
         rlcoded  (numpy ndarray): 1d array
           Encoded in decimal not binary [Kasem]
     """
+    # Local Variables
+    max_len = 255  # we do not want numbers bigger than 255
+    rlcoded = []
+    zero_count = 0
+    # Local Variables
+    #
+    # logic
+    for number in serialized:
+        if number == 0:
+            zero_count += 1
+            if zero_count == max_len:
+                rlcoded.append(0)
+                rlcoded.append(zero_count)
+                zero_count = 0
+        else:
+            if zero_count > 0:
+                rlcoded.append(0)
+                rlcoded.append(zero_count)
+                zero_count = 0
+            rlcoded.append(number)
+    # logic
+    return np.asarray(rlcoded)
 
 
 def huffman_encode(rlcoded):
@@ -176,7 +198,7 @@ def huffman_encode(rlcoded):
         huffcoded : List or String of 0s and 1s code to be sent or stored
         code_dict (dict): dict of symbol : code in binary
     """
-    counts_dict = dict(pd.Series(rlcoded).value_counts)
+    counts_dict = dict(pd.Series(rlcoded).value_counts())
     code_dict = h_encode(counts_dict)
     # list of strings to one joined string
     huffcoded = ''.join([code_dict[i] for i in rlcoded])
