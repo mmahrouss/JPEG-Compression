@@ -1,8 +1,9 @@
 import numpy as np
-import pandas as pd 
+import pandas as pd
 from huffman import encode as h_encode
 
-def get_sub_images(image, box_size = 8):
+
+def get_sub_images(image, box_size=8):
     """
     Gets an images of arbitrary size
     and return a reshaped array of (box_size, box_size) elements
@@ -16,32 +17,35 @@ def get_sub_images(image, box_size = 8):
          - should have a shape of (X, box_size, box_size, n_channels).
 
     """
-    #convert image to Greyscale to smiplify the operations
+    # convert image to Greyscale to smiplify the operations
     image = image.convert('L')
-    
+
     nrow = np.int(np.floor(image.size[0]/box_size))
     ncol = np.int(np.floor(image.size[1]/box_size))
-    
-    #make the image into a square to simplify operations based on the smaller dimension
-    d = min(ncol,nrow)
-    image = image.resize((nrow*8,ncol*8))
-    
-    image_array = np.asarray(image)                                #convert image to numpy array
-    
-    #Note: images are converted to uint8 datatypes since they range between 0-255. different datatypes might misbehave (based on my trials)
-    image_blocks = np.asarray([ np.zeros((8,8),dtype = 'uint8') for i in range(d)], dtype = 'uint8')
-    
-    #break down the image into blocks
-    for i in range(0,d):
-        image_blocks[i] = image_array[i*box_size : i*box_size+box_size,
-                                i*box_size:i*box_size+box_size]
-    
-    # If you want to reconvert the output of this function into images, use the following line:
+
+    # make the image into a square to simplify operations based
+    #  on the smaller dimension
+    d = min(ncol, nrow)
+    image = image.resize((nrow*8, ncol*8))
+
+    image_array = np.asarray(image)  # convert image to numpy array
+
+    # Note: images are converted to uint8 datatypes since they range between
+    #  0-255. different datatypes might misbehave (based on my trials)
+    image_blocks = np.asarray([np.zeros((8, 8), dtype='uint8')
+                               for i in range(d)], dtype='uint8')
+
+    # break down the image into blocks
+    for i in range(0, d):
+        image_blocks[i] = image_array[i*box_size: i*box_size+box_size,
+                                      i*box_size:i*box_size+box_size]
+
+    # If you want to reconvert the output of this function into images,
+    #  use the following line:
     #block_image = Image.fromarray(output[idx])
-        
+
     return image_blocks
 
-    
 
 def dct(sub_image):
     """
@@ -52,19 +56,23 @@ def dct(sub_image):
         transformed_sub_image (numpy ndarray): image in DCT domain
          with same size as input
     """
-    b = sub_image.shape[0]         #block size                         
+    b = sub_image.shape[0]  # block size
     i = j = np.arange(b)
-    #basis function
-    basis = lambda u, v: np.dot(np.cos((2*i + 1) * u * np.pi/ (2*b)).reshape(-1,1)
-                                ,np.cos((2*j + 1) * v * np.pi/ (2*b)).reshape(1,-1))
-    #scaling function
-    scale = lambda idx: 2 if idx == 0 else 1
-    outblock = np.zeros((b,b))
+    # basis function
+    def basis(u, v):
+        return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
+          np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+    # scaling function
+    def scale(idx): 
+        return 2 if idx == 0 else 1
+    outblock = np.zeros((b, b))
 
     for u in range(b):
         for v in range(b):
-            outblock[u,v] = np.sum(basis(u,v) * sub_image)/ (b**2/4) / scale(u) / scale(v)
-            
+            outblock[u, v] =\
+                np.sum(basis(u, v) * sub_image) / \
+                (b**2/4) / scale(u) / scale(v)
+
     return outblock
 
 
@@ -95,9 +103,8 @@ def quantize(dct_divided_image, quantization_table):
         quantized_dct_image (numpy ndarray): array of quantized image.
           same shape as dct_divided_image but element type ints
     """
-    
-    return np.array([sub_image // quantization_table for sub_image in dct_divided_image])
-
+    return np.array([sub_image // quantization_table for sub_image in
+                     dct_divided_image])
 
 
 def serialize(quantized_dct_image):
@@ -112,33 +119,35 @@ def serialize(quantized_dct_image):
           has shape (X*box_size*box_size*n_channels,)
     """
     # All about resizing right.
-    
-    #This approach is simple. While travelling the matrix in the usual fashion, on basis of parity of the sum of the indices of the element, add that
-    #particular element to the list either at the beginning or at the end if sum of i and j is either even or odd respectively. Print the solution list
-    #as it is.
+
+    # This approach is simple. While travelling the matrix in the usual
+    #  fashion, on basis of parity of the sum of the indices of the element,
+    #  add that particular element to the list either at the beginning or
+    #  at the end if sum of i and j is either even or odd respectively.
+    #  Print the solution list as it is.
     rows, columns = quantized_dct_image[0].shape
-    output = np.zeros(len(quantized_dct_image)*rows*columns,dtype = 'int')
+    output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
     c = 0
     for matrix in quantized_dct_image:
-        intermediate=[[] for i in range(rows+columns-1)] 
+        intermediate = [[] for i in range(rows+columns-1)]
 
-        for i in range(rows): 
-            for j in range(columns): 
-                sum=i+j 
-                if(sum%2 ==0): 
+        for i in range(rows):
+            for j in range(columns):
+                sum_ = i+j
+                if(sum_ % 2 == 0):
 
-                    #add at beginning 
-                    intermediate[sum].insert(0,matrix[i][j]) 
-                else: 
+                    # add at beginning
+                    intermediate[sum_].insert(0, matrix[i][j])
+                else:
 
-                    #add at end of the list 
-                    intermediate[sum].append(matrix[i][j]) 
-                    
-        for i in intermediate: 
-            for j in i: 
+                    # add at end of the list
+                    intermediate[sum_].append(matrix[i][j])
+
+        for i in intermediate:
+            for j in i:
                 output[c] = j
                 c += 1
-                
+
     return output
 
 
@@ -153,6 +162,7 @@ def run_length_code(serialized):
           Encoded in decimal not binary [Kasem]
     """
 
+
 def huffman_encode(rlcoded):
     """
     Encodes The run-length coded again with Huffman coding.
@@ -164,7 +174,8 @@ def huffman_encode(rlcoded):
         huffcoded : List or String of 0s and 1s code to be sent or stored
         code_dict (dict): dict of symbol : code in binary
     """
-    counts_dict = dict(pd.Series(rlcoded).value_counts)	
-    code_dict = h_encode(counts_dict)	
-    huffcoded = ''.join([code_dict[i] for i in rlcoded]) # list of strings to one joined string	
+    counts_dict = dict(pd.Series(rlcoded).value_counts)
+    code_dict = h_encode(counts_dict)
+    # list of strings to one joined string
+    huffcoded = ''.join([code_dict[i] for i in rlcoded])
     return huffcoded, code_dict
