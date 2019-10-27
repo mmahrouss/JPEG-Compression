@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from huffman import encode as h_encode
+from huffman import decode as h_decode
 
 
 def huffman_decode(huffcoded, code_dict):
@@ -13,6 +13,7 @@ def huffman_decode(huffcoded, code_dict):
     Returns:
         rlcoded (numpy ndarray): 1d array
     """
+    return h_decode(huffcoded, code_dict)
 
 
 def run_length_decode(rlcoded):
@@ -30,7 +31,7 @@ def run_length_decode(rlcoded):
     i = 0
     # Local Variables
     while i < len(rlcoded):
-        if serialized[i] == 0:
+        if rlcoded[i] == 0:
             serialized.extend([0]*rlcoded[i+1])
             i += 2
         else:

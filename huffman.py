@@ -43,6 +43,34 @@ def assign_codes(tree):
     return code_dict
 
 
+def reverse_dict(d):
+    return dict(map(reversed, d.items()))
+
+
+def decode(s, code_dict):
+    # TCO FUNCTION:
+    # def rec_decode(s, acc="", incoming=""):
+    #     if len(s) == 0:
+    #         return acc
+    #     ind = invcodemap.get(incoming+s[0], None)
+    #     if ind is not None:
+    #         return rec_decode(s[1:], acc+possibilities[int(ind)], "")
+    #     return rec_decode(s[1:], acc, incoming+s[0])
+    # return rec_decode(s)
+    # WHILE-LOOPED FUNCTION:
+    invcodemap = reverse_dict(code_dict)
+    acc = []
+    incoming = ""
+    while len(s) != 0:
+        code = invcodemap.get(incoming+s[0], None)
+        if code is not None:
+            acc.append(code)
+            s, incoming = s[1:], ""
+        else:
+            s, incoming = s[1:], incoming+s[0]
+    return acc
+
+
 def insort_wkey(a, x, key=None, lo=0, hi=None):
     # """Insert item x in list a, and keep it sorted assuming a is sorted.
     # If x is already in a, insert it to the right of the rightmost x.
