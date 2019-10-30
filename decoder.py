@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from huffman import decode as h_decode
+from encoder import generate_indecies_zigzag
 
 
 def huffman_decode(huffcoded, code_dict):
@@ -40,17 +41,30 @@ def run_length_decode(rlcoded):
     return np.asarray(serialized)
 
 
-def deserialize(serialized):
+def deserialize(serialized, n_blocks, box_size):
     """
     Removes serialization from quantized DCT values.
     Args:
         serialized (numpy ndarray): 1d array
           has shape (X*box_size*box_size*n_channels,)
+        n_blocks (int)
+            number of blocks 
+        box_size (int)
+            size of box used in serialize function
     Returns:
         quantized (numpy ndarray): array of quantized DCT values.
           - should have a shape of (X, box_size, box_size, n_channels)
            with dtype Int
     """
+    rows = columns = box_size
+    output = np.zeros((n_blocks,rows,columns))
+    step = 0
+    for matrix in output:
+        for i, j in generate_indecies_zigzag(box_size, box_size):
+            matrix[i,j] = serialized[step]
+            step += 1
+    
+    return output
 
 
 def dequantize(quantized, quantization_table):
@@ -66,6 +80,8 @@ def dequantize(quantized, quantization_table):
         dct_values (numpy ndarray): array of DCT values.
           same shape as dct_values but element type ints
     """
+    # element by ekement multiplication. Equivelant to np.multiply()
+    return np.array([block * quantization_table for block in quantized]) 
 
 
 def idct(dct_values):
