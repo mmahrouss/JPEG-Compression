@@ -26,7 +26,7 @@ def get_sub_images(image, box_size=8):
     # make the image into a square to simplify operations based
     #  on the smaller dimension
     d = min(ncol, nrow)
-    image = image.resize((nrow*8, ncol*8))
+    image = image.resize((nrow*box_size, ncol*box_size))
 
     image_array = np.asarray(image)  # convert image to numpy array
 
@@ -59,11 +59,13 @@ def dct(sub_image):
     b = sub_image.shape[0]  # block size
     i = j = np.arange(b)
     # basis function
+
     def basis(u, v):
         return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
-          np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
     # scaling function
-    def scale(idx): 
+
+    def scale(idx):
         return 2 if idx == 0 else 1
     outblock = np.zeros((b, b))
 
@@ -95,7 +97,7 @@ def quantize(dct_divided_image, quantization_table):
     Multiplies quantization table on DCT output
     Args:
         dct_divided_image (numpy ndarray): array of divided images
-        - should have a shape of (X, box_size, box_size, n_channels)
+        - should have a shape of (n_blocks, box_size, box_size, n_channels)
          with dct applied to all of them
         quantization_table (numpy ndarray): quantization table (matrix)
         - should have a shape of (box_size, box_size)
@@ -106,6 +108,50 @@ def quantize(dct_divided_image, quantization_table):
     return np.array([sub_image // quantization_table for sub_image in
                      dct_divided_image])
 
+def generate_indecies_zigzag(rows = 8, cols = 8):
+    """
+    Gets the dimensions of an array, typically a square matrix,
+    and returns an array of indecies for zigzag traversal
+    
+    NOTE:
+    -This function imagines the matrix as a 4 wall room
+    -Needed for the serialize and deserialized functions
+    """
+    #initial indecies
+    i = j = 0
+    #This is to change the style of traversing the matrix
+    going_up = True
+    
+    forReturn = [[0,0] for i in range(rows*cols)]
+    
+    for step in range(rows*cols):
+        # take a step up
+        i_new, j_new = (i-1, j+1) if going_up else (i+1, j-1)
+        
+        forReturn[step] = [i,j]
+        if i_new >= rows:
+            # you hit the ground
+            j += 1
+            going_up = not going_up
+        elif j_new >= cols:
+            # you hit the right wall
+            i += 1
+            going_up = not going_up
+        elif i_new < 0:
+            # you hit the ceiling
+            j += 1
+            going_up = not going_up
+        elif j_new < 0:
+            # you hit the right wall
+            i += 1
+            going_up = not going_up
+        elif i_new == rows and j_new == cols:
+            # you are done
+            assert step == (rows*cols -1)
+        else:
+            i, j = i_new, j_new
+        
+    return forReturn
 
 def serialize(quantized_dct_image):
     """
@@ -127,29 +173,17 @@ def serialize(quantized_dct_image):
     #  Print the solution list as it is.
     rows, columns = quantized_dct_image[0].shape
     output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
-    c = 0
+    
+
     for matrix in quantized_dct_image:
-        intermediate = [[] for i in range(rows+columns-1)]
-
-        for i in range(rows):
-            for j in range(columns):
-                sum_ = i+j
-                if(sum_ % 2 == 0):
-
-                    # add at beginning
-                    intermediate[sum_].insert(0, matrix[i][j])
-                else:
-
-                    # add at end of the list
-                    intermediate[sum_].append(matrix[i][j])
-
-        for i in intermediate:
-            for j in i:
-                output[c] = j
-                c += 1
+        step = 0
+        for i, j in generate_indecies_zigzag(rows, columns):
+            output[step] = matrix[i,j] 
+            step += 1
+    
+    
 
     return output
-
 
 def run_length_code(serialized):
     """
@@ -161,6 +195,28 @@ def run_length_code(serialized):
         rlcoded  (numpy ndarray): 1d array
           Encoded in decimal not binary [Kasem]
     """
+    # Local Variables
+    max_len = 255  # we do not want numbers bigger than 255
+    rlcoded = []
+    zero_count = 0
+    # Local Variables
+    #
+    # logic
+    for number in serialized:
+        if number == 0:
+            zero_count += 1
+            if zero_count == max_len:
+                rlcoded.append(0)
+                rlcoded.append(zero_count)
+                zero_count = 0
+        else:
+            if zero_count > 0:
+                rlcoded.append(0)
+                rlcoded.append(zero_count)
+                zero_count = 0
+            rlcoded.append(number)
+    # logic
+    return np.asarray(rlcoded)
 
 
 def huffman_encode(rlcoded):
@@ -174,7 +230,7 @@ def huffman_encode(rlcoded):
         huffcoded : List or String of 0s and 1s code to be sent or stored
         code_dict (dict): dict of symbol : code in binary
     """
-    counts_dict = dict(pd.Series(rlcoded).value_counts)
+    counts_dict = dict(pd.Series(rlcoded).value_counts())
     code_dict = h_encode(counts_dict)
     # list of strings to one joined string
     huffcoded = ''.join([code_dict[i] for i in rlcoded])

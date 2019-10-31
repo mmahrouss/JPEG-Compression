@@ -1,3 +1,8 @@
 .mypy_cache/*
 .vscode/settings.json
 .ipynb_checkpoints
+__pycache__/
+__pycache__/
+rlcode_decimal.ipynb
+JPEG_codec.ipynb
+*.jpg
