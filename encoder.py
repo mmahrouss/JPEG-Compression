@@ -8,13 +8,13 @@ def get_sub_images(image, box_size=8):
     Gets an images of arbitrary size
     and return a reshaped array of (box_size, box_size) elements
     Args:
-        image (numpy ndarray): Image input we want to divide to box sub_images.
-         Should have shape (length, width, n_channels)
-          e. g. n_channels = 3 for RGB
+        image (PIL image): Image input we want to divide to box sub_images.
+         Should have shape (length, width)
          box_size (int): Size of the box sub images
     Returns:
         divided_image (numpy ndarray, dtype = "uint8"): array of divided images
          - should have a shape of (X, box_size, box_size, n_channels).
+         d: number of blocks in image
 
     """
     # convert image to Greyscale to smiplify the operations
@@ -44,7 +44,7 @@ def get_sub_images(image, box_size=8):
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
 
-    return image_blocks
+    return image_blocks, d
 
 
 def dct(sub_image):
