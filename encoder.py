@@ -3,19 +3,15 @@ import pandas as pd
 from huffman import encode as h_encode
 
 
-def get_sub_images(image, box_size=8):
+def reshape_image(image):
     """
-    Gets an images of arbitrary size
-    and return a reshaped array of (box_size, box_size) elements
+    Gets an image of arbitrary size
+    and returns a reshaped array of (box_size, box_size) elements
     Args:
-        image (numpy ndarray): Image input we want to divide to box sub_images.
-         Should have shape (length, width, n_channels)
-          e. g. n_channels = 3 for RGB
-         box_size (int): Size of the box sub images
+        image (PIL image): original image that needs to be reshaped and grayscaled
     Returns:
-        divided_image (numpy ndarray, dtype = "uint8"): array of divided images
-         - should have a shape of (X, box_size, box_size, n_channels).
-
+        image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m 
+        np array.
     """
     # convert image to Greyscale to smiplify the operations
     image = image.convert('L')
@@ -29,10 +25,25 @@ def get_sub_images(image, box_size=8):
     image = image.resize((nrow*box_size, ncol*box_size))
 
     image_array = np.asarray(image)  # convert image to numpy array
+    return image_array
+
+def get_sub_images(image_array, box_size=8):
+    """
+    Gets a grayscale image and returns an array of (box_size, box_size) elements
+    Args:
+        image_array (numpy ndarray): Image input we want to divide to box sub_images.
+         Should have shape (length, width, n_channels) where length = width
+          e. g. n_channels = 3 for RGB
+         box_size (int): Size of the box sub images
+    Returns:
+        divided_image (numpy ndarray, dtype = "uint8"): array of divided images
+         - should have a shape of (X, box_size, box_size, n_channels).
+         d: number of blocks in image
+    """
 
     # Note: images are converted to uint8 datatypes since they range between
     #  0-255. different datatypes might misbehave (based on my trials)
-    image_blocks = np.asarray([np.zeros((8, 8), dtype='uint8')
+    image_blocks = np.asarray([np.zeros((box_size, box_size), dtype='uint8')
                                for i in range(d)], dtype='uint8')
 
     # break down the image into blocks
@@ -44,7 +55,7 @@ def get_sub_images(image, box_size=8):
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
 
-    return image_blocks
+    return image_blocks, d
 
 
 def dct(sub_image):
