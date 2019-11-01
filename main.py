@@ -1,0 +1,63 @@
+import numpy as np
+from PIL import Image
+import encoder as e
+import decoder as d
+
+def encode(image, box_size, quantization_table):
+  """
+    Gets an images of arbitrary size
+    and returns a string of a list of 0 and 1 representing the compressed encoded image
+    Args:
+         image (PIL image): original image that needs to be reshaped and grayscaled
+         box_size (int): Size of the box sub images
+         quantization_table (numpy array): Table used to quantize dct values
+    Returns:
+        huffcoded : List or String of 0s and 1s code to be sent or stored
+        code_dict (dict): dict of symbol : code in binary
+        n_blocks: Number of blocks in image
+  """ 
+  #Reshape image and divide it into blocks
+  image_array = e.reshape_image(image)
+  sub_images, n_blocks = e.get_sub_images(image_array,box_size)
+  # Apply DCT
+  dct_values = e.apply_dct_to_all(sub_images)
+  # Quantize DCT values
+  quantized = e.quantize(dct_values,quantization_table)
+  # Serialize the values
+  serialized = e.serialize(quantized)
+  # Perform run length encoding
+  rlcoded = e.run_length_code(serialized)
+  # Perform huffman encoding
+  huffcoded, code_dict = e.huffman_encode(rlcoded)
+
+  return huffcoded, code_dict, n_blocks
+
+
+def decode(huffcoded, code_dict, n_blocks, box_size, quantization_table):
+  """
+    Gets a string of a list of 0 and 1 representing the compressed encoded image
+    and returns a reconstructed image.
+    Args:
+         huffcoded : List or String of 0s and 1s code to be sent or stored
+         code_dict (dict): dict of symbol : code in binary
+         n_blocks: Number of blocks in image
+         box_size (int): Size of the box sub images
+         quantization_table (numpy array): Table used to quantize dct values
+    Returns:
+        reconstructed_image (numpy ndarray): Image reconstructed from the array
+        of divided images.
+  """
+  # Huffman Decoding
+  rlcoded = d.huffman_decode(huffcoded,code_dict)
+  # Runlength decoding
+  serialized = d.run_length_decode(rlcoded)
+  # Deserialize
+  quantized = d.deserialize(serialized,n_blocks,box_size)
+  # Dequantize
+  dct_values = d.dequantize(quantized,quantization_table)
+  # IDCT
+  sub_images = d.apply_idct_to_all(subdivded_dct_values)
+  # Reconstructed image
+  reconstructed_image = d.get_reconstructed_image(sub_images,box_size)
+
+  return reconstructed_image
