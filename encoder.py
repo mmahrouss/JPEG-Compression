@@ -4,19 +4,15 @@ from huffman import encode as h_encode
 from scipy.signal import lfilter
 
 
-def get_sub_images(image, box_size=8):
+def reshape_image(image):
     """
-    Gets an images of arbitrary size
-    and return a reshaped array of (box_size, box_size) elements
+    Gets an image of arbitrary size
+    and returns a reshaped array of (box_size, box_size) elements
     Args:
-        image (numpy ndarray): Image input we want to divide to box sub_images.
-         Should have shape (length, width, n_channels)
-          e. g. n_channels = 3 for RGB
-         box_size (int): Size of the box sub images
+        image (PIL image): original image that needs to be reshaped and grayscaled
     Returns:
-        divided_image (numpy ndarray, dtype = "uint8"): array of divided images
-         - should have a shape of (X, box_size, box_size, n_channels).
-
+        image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m 
+        np array.
     """
     # convert image to Greyscale to smiplify the operations
     image = image.convert('L')
@@ -27,13 +23,28 @@ def get_sub_images(image, box_size=8):
     # make the image into a square to simplify operations based
     #  on the smaller dimension
     d = min(ncol, nrow)
-    image = image.resize((nrow*8, ncol*8))
+    image = image.resize((nrow*box_size, ncol*box_size))
 
     image_array = np.asarray(image)  # convert image to numpy array
+    return image_array
+
+def get_sub_images(image_array, box_size=8):
+    """
+    Gets a grayscale image and returns an array of (box_size, box_size) elements
+    Args:
+        image_array (numpy ndarray): Image input we want to divide to box sub_images.
+         Should have shape (length, width, n_channels) where length = width
+          e. g. n_channels = 3 for RGB
+         box_size (int): Size of the box sub images
+    Returns:
+        divided_image (numpy ndarray, dtype = "uint8"): array of divided images
+         - should have a shape of (X, box_size, box_size, n_channels).
+         d: number of blocks in image
+    """
 
     # Note: images are converted to uint8 datatypes since they range between
     #  0-255. different datatypes might misbehave (based on my trials)
-    image_blocks = np.asarray([np.zeros((8, 8), dtype='uint8')
+    image_blocks = np.asarray([np.zeros((box_size, box_size), dtype='uint8')
                                for i in range(d)], dtype='uint8')
 
     # break down the image into blocks
@@ -45,7 +56,7 @@ def get_sub_images(image, box_size=8):
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
 
-    return image_blocks
+    return image_blocks, d
 
 
 def dct(sub_image):
@@ -156,7 +167,7 @@ def quantize(dct_divided_image, quantization_table):
     Multiplies quantization table on DCT output
     Args:
         dct_divided_image (numpy ndarray): array of divided images
-        - should have a shape of (X, box_size, box_size, n_channels)
+        - should have a shape of (n_blocks, box_size, box_size, n_channels)
          with dct applied to all of them
         quantization_table (numpy ndarray): quantization table (matrix)
         - should have a shape of (box_size, box_size)
@@ -167,6 +178,50 @@ def quantize(dct_divided_image, quantization_table):
     return np.array([sub_image // quantization_table for sub_image in
                      dct_divided_image])
 
+def generate_indecies_zigzag(rows = 8, cols = 8):
+    """
+    Gets the dimensions of an array, typically a square matrix,
+    and returns an array of indecies for zigzag traversal
+    
+    NOTE:
+    -This function imagines the matrix as a 4 wall room
+    -Needed for the serialize and deserialized functions
+    """
+    #initial indecies
+    i = j = 0
+    #This is to change the style of traversing the matrix
+    going_up = True
+    
+    forReturn = [[0,0] for i in range(rows*cols)]
+    
+    for step in range(rows*cols):
+        # take a step up
+        i_new, j_new = (i-1, j+1) if going_up else (i+1, j-1)
+        
+        forReturn[step] = [i,j]
+        if i_new >= rows:
+            # you hit the ground
+            j += 1
+            going_up = not going_up
+        elif j_new >= cols:
+            # you hit the right wall
+            i += 1
+            going_up = not going_up
+        elif i_new < 0:
+            # you hit the ceiling
+            j += 1
+            going_up = not going_up
+        elif j_new < 0:
+            # you hit the right wall
+            i += 1
+            going_up = not going_up
+        elif i_new == rows and j_new == cols:
+            # you are done
+            assert step == (rows*cols -1)
+        else:
+            i, j = i_new, j_new
+        
+    return forReturn
 
 def serialize(quantized_dct_image):
     """
@@ -188,29 +243,17 @@ def serialize(quantized_dct_image):
     #  Print the solution list as it is.
     rows, columns = quantized_dct_image[0].shape
     output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
-    c = 0
+    
+
     for matrix in quantized_dct_image:
-        intermediate = [[] for i in range(rows+columns-1)]
-
-        for i in range(rows):
-            for j in range(columns):
-                sum_ = i+j
-                if(sum_ % 2 == 0):
-
-                    # add at beginning
-                    intermediate[sum_].insert(0, matrix[i][j])
-                else:
-
-                    # add at end of the list
-                    intermediate[sum_].append(matrix[i][j])
-
-        for i in intermediate:
-            for j in i:
-                output[c] = j
-                c += 1
+        step = 0
+        for i, j in generate_indecies_zigzag(rows, columns):
+            output[step] = matrix[i,j] 
+            step += 1
+    
+    
 
     return output
-
 
 def run_length_code(serialized):
     """
