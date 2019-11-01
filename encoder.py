@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from huffman import encode as h_encode
+from scipy.signal import lfilter
 
 
 def get_sub_images(image, box_size=8):
@@ -90,6 +91,64 @@ def apply_dct_to_all(subdivded_image):
          with dct applied to all of them
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
+
+def dwt(image):
+    """
+    Gets an image of arbitrary size
+    and return an array of the same size containing 4 different versions of the image
+    by filtering the rows and colums using a low pass or a high pass filter with the
+    different combinations
+    Args:
+        image (numpy ndarray): Image input we want to transform.
+         Should have shape (length, width, n_channels)
+          e. g. n_channels = 3 for RGB
+         box_size (int): Size of the box sub images
+    Returns:
+        filtered_image (numpy ndarray): array of the 4 images [LL,LH,HL,HH]
+         - should have a shape of (X, box_size, box_size, n_channels).
+
+    """
+    #Create the high pass and low pass filters
+
+    LPF=[-0.125,0.25,0.75,0.25,-0.125]
+    HPF=[-0.5,1,-0.5]
+
+    image=image.convert('L')
+    image_array = np.asarray(image)
+    # convert image to Greyscale to simplify the operations
+    #image = image.convert('L')
+
+    nrow = np.int(image_array.shape[0])
+    ncol = np.int(image_array.shape[1])
+
+    # make the image into a square to simplify operations based
+    #  on the smaller dimension
+    d = min(ncol, nrow)
+    image = image.resize((nrow, ncol))
+
+    #create an array that will contain the 4 different types of the image
+    LL=np.zeros((nrow,ncol))
+    LH=np.zeros((nrow,ncol))
+    HL=np.zeros((nrow,ncol))
+    HH=np.zeros((nrow,ncol))
+    LowPass_rows=np.zeros((nrow,ncol))
+    HighPass_rows=np.zeros((nrow,ncol))
+    filtered_image=[LL,LH,HL,HH]
+    #filtering the rows using a low pass and high pass filters 
+    for i in range(0,nrow):
+        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
+        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
+    for i in range(0,ncol):
+        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
+        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
+        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
+        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
+        
+    #downsampling by 2 on both rows and columns
+    for i in filtered_image:
+        i=i[1:i.shape[0]:2,1:i.shape[1]:2]
+
+    return filtered_image
 
 
 def quantize(dct_divided_image, quantization_table):
