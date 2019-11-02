@@ -4,7 +4,7 @@ from huffman import encode as h_encode
 from scipy.signal import lfilter
 
 
-def reshape_image(image, box_size):
+def reshape_image(image, box_size=8):
     """
     Gets an image of arbitrary size
     and returns a reshaped array of (box_size, box_size) elements
@@ -26,6 +26,7 @@ def reshape_image(image, box_size):
     image_array = np.asarray(image)  # convert image to numpy array
     return image_array
 
+
 def get_sub_images(image_array, box_size=8):
     """
     Gets a grayscale image and returns an array of (box_size, box_size) elements
@@ -37,30 +38,33 @@ def get_sub_images(image_array, box_size=8):
     Returns:
         divided_image (numpy ndarray, dtype = "uint8"): array of divided images
          - should have a shape of (X, box_size, box_size, n_channels).
-         d: number of blocks in image
+        nrow: number of rows or blocks
+        ncol: number of columns in image
+        the number of blocks is nrow*ncol
     """
-    nrow = np.int(np.floor(image_array.shape[0]/box_size))
-    ncol = np.int(np.floor(image_array.shape[1]/box_size))
+    nrow = np.int(image_array.shape[0]/box_size)
+    ncol = np.int(image_array.shape[1]/box_size)
 
     # make the image into a square to simplify operations based
     #  on the smaller dimension
-    d = min(ncol, nrow)
+    # d = min(ncol, nrow)
 
     # Note: images are converted to uint8 datatypes since they range between
     #  0-255. different datatypes might misbehave (based on my trials)
     image_blocks = np.asarray([np.zeros((box_size, box_size), dtype='uint8')
-                               for i in range(d)], dtype='uint8')
+                               for i in range(nrow*ncol)], dtype='uint8')
 
     # break down the image into blocks
-    for i in range(0, d):
-        image_blocks[i] = image_array[i*box_size: i*box_size+box_size,
-                                      i*box_size:i*box_size+box_size]
+    for i in range(nrow):
+        for j in range(ncol):
+            image_blocks[i] = image_array[i*box_size: i*box_size+box_size,
+                                          j*box_size:j*box_size+box_size]
 
     # If you want to reconvert the output of this function into images,
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
 
-    return image_blocks, d
+    return image_blocks, nrow, ncol
 
 
 def dct(sub_image):
@@ -107,6 +111,7 @@ def apply_dct_to_all(subdivded_image):
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
 
+
 def dwt(image):
     """
     Gets an image of arbitrary size
@@ -123,12 +128,12 @@ def dwt(image):
          - should have a shape of (X, box_size, box_size, n_channels).
 
     """
-    #Create the high pass and low pass filters
+    # Create the high pass and low pass filters
 
-    LPF=[-0.125,0.25,0.75,0.25,-0.125]
-    HPF=[-0.5,1,-0.5]
+    LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
+    HPF = [-0.5, 1, -0.5]
 
-    image=image.convert('L')
+    image = image.convert('L')
     image_array = np.asarray(image)
     # convert image to Greyscale to simplify the operations
     #image = image.convert('L')
@@ -141,27 +146,27 @@ def dwt(image):
     d = min(ncol, nrow)
     image = image.resize((nrow, ncol))
 
-    #create an array that will contain the 4 different types of the image
-    LL=np.zeros((nrow,ncol))
-    LH=np.zeros((nrow,ncol))
-    HL=np.zeros((nrow,ncol))
-    HH=np.zeros((nrow,ncol))
-    LowPass_rows=np.zeros((nrow,ncol))
-    HighPass_rows=np.zeros((nrow,ncol))
-    filtered_image=[LL,LH,HL,HH]
-    #filtering the rows using a low pass and high pass filters 
-    for i in range(0,nrow):
-        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
-        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
-    for i in range(0,ncol):
-        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
-        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
-        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
-        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
-        
-    #downsampling by 2 on both rows and columns
+    # create an array that will contain the 4 different types of the image
+    LL = np.zeros((nrow, ncol))
+    LH = np.zeros((nrow, ncol))
+    HL = np.zeros((nrow, ncol))
+    HH = np.zeros((nrow, ncol))
+    LowPass_rows = np.zeros((nrow, ncol))
+    HighPass_rows = np.zeros((nrow, ncol))
+    filtered_image = [LL, LH, HL, HH]
+    # filtering the rows using a low pass and high pass filters
+    for i in range(0, nrow):
+        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
+        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
+    for i in range(0, ncol):
+        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
+        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
+        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
+        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
+
+    # downsampling by 2 on both rows and columns
     for i in filtered_image:
-        i=i[1:i.shape[0]:2,1:i.shape[1]:2]
+        i = i[1:i.shape[0]:2, 1:i.shape[1]:2]
 
     return filtered_image
 
@@ -182,27 +187,28 @@ def quantize(dct_divided_image, quantization_table):
     return np.array([sub_image // quantization_table for sub_image in
                      dct_divided_image])
 
-def generate_indecies_zigzag(rows = 8, cols = 8):
+
+def generate_indecies_zigzag(rows=8, cols=8):
     """
     Gets the dimensions of an array, typically a square matrix,
     and returns an array of indecies for zigzag traversal
-    
+
     NOTE:
     -This function imagines the matrix as a 4 wall room
     -Needed for the serialize and deserialized functions
     """
-    #initial indecies
+    # initial indecies
     i = j = 0
-    #This is to change the style of traversing the matrix
+    # This is to change the style of traversing the matrix
     going_up = True
-    
-    forReturn = [[0,0] for i in range(rows*cols)]
-    
+
+    forReturn = [[0, 0] for i in range(rows*cols)]
+
     for step in range(rows*cols):
         # take a step up
         i_new, j_new = (i-1, j+1) if going_up else (i+1, j-1)
-        
-        forReturn[step] = [i,j]
+
+        forReturn[step] = [i, j]
         if i_new >= rows:
             # you hit the ground
             j += 1
@@ -221,11 +227,12 @@ def generate_indecies_zigzag(rows = 8, cols = 8):
             going_up = not going_up
         elif i_new == rows and j_new == cols:
             # you are done
-            assert step == (rows*cols -1)
+            assert step == (rows*cols - 1)
         else:
             i, j = i_new, j_new
-        
+
     return forReturn
+
 
 def serialize(quantized_dct_image):
     """
@@ -247,17 +254,15 @@ def serialize(quantized_dct_image):
     #  Print the solution list as it is.
     rows, columns = quantized_dct_image[0].shape
     output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
-    
 
     for matrix in quantized_dct_image:
         step = 0
         for i, j in generate_indecies_zigzag(rows, columns):
-            output[step] = matrix[i,j] 
+            output[step] = matrix[i, j]
             step += 1
-    
-    
 
     return output
+
 
 def run_length_code(serialized):
     """

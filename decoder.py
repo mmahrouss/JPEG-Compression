@@ -57,13 +57,13 @@ def deserialize(serialized, n_blocks, box_size):
            with dtype Int
     """
     rows = columns = box_size
-    output = np.zeros((n_blocks,rows,columns))
+    output = np.zeros((n_blocks, rows, columns))
     step = 0
     for matrix in output:
         for i, j in generate_indecies_zigzag(box_size, box_size):
-            matrix[i,j] = serialized[step]
+            matrix[i, j] = serialized[step]
             step += 1
-    
+
     return output
 
 
@@ -81,7 +81,7 @@ def dequantize(quantized, quantization_table):
           same shape as dct_values but element type ints
     """
     # element by ekement multiplication. Equivelant to np.multiply()
-    return np.array([block * quantization_table for block in quantized]) 
+    return np.array([block * quantization_table for block in quantized])
 
 
 def idct(dct_values):
