@@ -4,12 +4,13 @@ from huffman import encode as h_encode
 from scipy.signal import lfilter
 
 
-def reshape_image(image):
+def reshape_image(image, box_size):
     """
     Gets an image of arbitrary size
     and returns a reshaped array of (box_size, box_size) elements
     Args:
         image (PIL image): original image that needs to be reshaped and grayscaled
+        box_size (int): Size of the box sub images
     Returns:
         image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m 
         np array.
@@ -20,9 +21,6 @@ def reshape_image(image):
     nrow = np.int(np.floor(image.size[0]/box_size))
     ncol = np.int(np.floor(image.size[1]/box_size))
 
-    # make the image into a square to simplify operations based
-    #  on the smaller dimension
-    d = min(ncol, nrow)
     image = image.resize((nrow*box_size, ncol*box_size))
 
     image_array = np.asarray(image)  # convert image to numpy array
@@ -41,6 +39,12 @@ def get_sub_images(image_array, box_size=8):
          - should have a shape of (X, box_size, box_size, n_channels).
          d: number of blocks in image
     """
+    nrow = np.int(np.floor(image_array.shape[0]/box_size))
+    ncol = np.int(np.floor(image_array.shape[1]/box_size))
+
+    # make the image into a square to simplify operations based
+    #  on the smaller dimension
+    d = min(ncol, nrow)
 
     # Note: images are converted to uint8 datatypes since they range between
     #  0-255. different datatypes might misbehave (based on my trials)
