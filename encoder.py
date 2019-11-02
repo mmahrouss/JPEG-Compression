@@ -9,7 +9,8 @@ def reshape_image(image, box_size=8):
     Gets an image of arbitrary size
     and returns a reshaped array of (box_size, box_size) elements
     Args:
-        image (PIL image): original image that needs to be reshaped and grayscaled
+        image (PIL image): original image that needs to be reshaped and
+                            grayscaled
         box_size (int): Size of the box sub images
     Returns:
         image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m 
@@ -29,7 +30,8 @@ def reshape_image(image, box_size=8):
 
 def get_sub_images(image_array, box_size=8):
     """
-    Gets a grayscale image and returns an array of (box_size, box_size) elements
+    Gets a grayscale image and returns an array of (box_size, box_size)
+    elements
     Args:
         image_array (numpy ndarray): Image input we want to divide to box sub_images.
          Should have shape (length, width, n_channels) where length = width
@@ -111,8 +113,8 @@ def apply_dct_to_all(subdivded_image):
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
 
-def dwt(image,quantization_Array):
 
+def dwt(image, quantization_Array):
     """
     Gets an image of arbitrary size
     and return an array of the same size containing 4 different versions of the image
@@ -121,55 +123,56 @@ def dwt(image,quantization_Array):
     Args:
         image (numpy ndarray): Image input we want to transform.
          Should have shape (length, width)
-          
-         quantization_Array (List of ints): An array that contains four values for the quantization of each image
+
+         quantization_Array (List of ints): An array that contains four values
+         for the quantization of each image
         should be 1D and have 4 elements
     Returns:
         filtered_image (numpy ndarray): array of the 4 images [LL,LH,HL,HH]
          - should have a shape of (X, box_size, box_size, n_channels).
 
     """
-    #Create the high pass and low pass filters
-    LPF=[-0.125,0.25,0.75,0.25,-0.125]
-    HPF=[-0.5,1,-0.5]
+    # Create the high pass and low pass filters
+    LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
+    HPF = [-0.5, 1, -0.5]
 
-    
     image_array = np.asarray(image)
     nrow = np.int(image_array.shape[0])
     ncol = np.int(image_array.shape[1])
 
-    #create an array that will contain the 4 different types of the image
-    LL=np.zeros((nrow,ncol))
-    LH=np.zeros((nrow,ncol))
-    HL=np.zeros((nrow,ncol))
-    HH=np.zeros((nrow,ncol))
-    LowPass_rows=np.zeros((nrow,ncol))
-    HighPass_rows=np.zeros((nrow,ncol))
-    filtered_image=[LL,LH,HL,HH]
-    #filtering the rows using a low pass and high pass filters 
-    for i in range(0,nrow):
-        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
-        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
-    for i in range(0,ncol):
-        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
-        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
-        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
-        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
-        
-    #downsampling by 2 on both rows and columns
-    for i in range(0,len(filtered_image)):
-        filtered_image[i]=filtered_image[i][1:filtered_image[i].shape[0]:2,1:filtered_image[i].shape[1]:2]
-        filtered_image[i]=filtered_image[i]/quantization_Array[i]
+    # create an array that will contain the 4 different types of the image
+    LL = np.zeros((nrow, ncol))
+    LH = np.zeros((nrow, ncol))
+    HL = np.zeros((nrow, ncol))
+    HH = np.zeros((nrow, ncol))
+    LowPass_rows = np.zeros((nrow, ncol))
+    HighPass_rows = np.zeros((nrow, ncol))
+    filtered_image = [LL, LH, HL, HH]
+    # filtering the rows using a low pass and high pass filters
+    for i in range(0, nrow):
+        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
+        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
+    for i in range(0, ncol):
+        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
+        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
+        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
+        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
 
+    # downsampling by 2 on both rows and columns
+    for i in range(0, len(filtered_image)):
+        filtered_image[i] = filtered_image[i][1:filtered_image[i].shape[0]:2,
+                                              1:filtered_image[i].shape[1]:2]
+        filtered_image[i] = filtered_image[i]/quantization_Array[i]
 
     return filtered_image
 
-def dwt_levels(filtered_image,Levels,quantization_Array):
+
+def dwt_levels(filtered_image, Levels, quantization_Array):
     """
     Gets an array of 4 elements (the output of the dwt function)
     and return an array by replacing the elements of the list that are addressed through the
     Levels array by dwt versions of them (replace 1 element with a List of 4 elements)
-    
+
     Args:
         filtered_image (numpy ndarray): The output of the dwt function that would be decomposed further.
          should have 4 elements
@@ -179,8 +182,9 @@ def dwt_levels(filtered_image,Levels,quantization_Array):
 
         Levels (a list of lists): The parts of the image that will be decomposed further.
         The Levels list should look like this [[0],[0,1],[1]]
-        The above list means that the LL image would be decomposed again, then the new LH that was created from the LL image would 
-        be decomposed again, then the LH of the original image would be decomposed
+        The above list means that the LL image would be decomposed again,
+        then the new LH that was created from the LL image would be decomposed
+        again, then the LH of the original image would be decomposed
         Adressing should use this code below
         LL:0
         LH:1
@@ -188,28 +192,30 @@ def dwt_levels(filtered_image,Levels,quantization_Array):
         HH:3
 
     """
-    for i in range(0,len(Levels)):
-        
+    for i in range(0, len(Levels)):
 
-        if len(Levels[i])>i+1:
-            raise Exception('The Array is not sorted correctly.An element that does not exist is called. The value of the subarray was: {}'.format(Levels[i]))
+        if len(Levels[i]) > i+1:
+            raise Exception(
+                'The Array is not sorted correctly.An element that does not exist is called. The value of the subarray was: {}'.format(Levels[i]))
 
-        if len(Levels[i])>3:
-            raise Exception('The length of each subarray should not exceed 3. The value of the subarray was: {}'.format(Levels[i]))
+        if len(Levels[i]) > 3:
+            raise Exception(
+                'The length of each subarray should not exceed 3. The value of the subarray was: {}'.format(Levels[i]))
 
+        if len(Levels[i]) == 1:
 
-        if len(Levels[i])==1:
-            
-            filtered_image[Levels[i][0]]=dwt(filtered_image[Levels[i][0]],quantization_Array)
-        
+            filtered_image[Levels[i][0]] = dwt(
+                filtered_image[Levels[i][0]], quantization_Array)
 
-        if len(Levels[i])==2:
-            
-            filtered_image[Levels[i][0]][Levels[i][1]]=dwt(filtered_image[Levels[i][0]][Levels[i][1]],quantization_Array)
-            
-        if len(Levels[i])==3:
-            
-            filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]]=dwt(filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]],quantization_Array)
+        if len(Levels[i]) == 2:
+
+            filtered_image[Levels[i][0]][Levels[i][1]] = dwt(
+                filtered_image[Levels[i][0]][Levels[i][1]], quantization_Array)
+
+        if len(Levels[i]) == 3:
+
+            filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]] = dwt(
+                filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]], quantization_Array)
 
 
 def quantize(dct_divided_image, quantization_table):
@@ -318,16 +324,15 @@ def run_length_code(serialized):
     # Local Variables
     max_len = 255  # we do not want numbers bigger than 255
     rlcoded = []
-    zero_count = 0
-    # Local Variables
-    #
+    zero_count = 0  # counter for zeros
     # logic
     for number in serialized:
         if number == 0:
             zero_count += 1
             if zero_count == max_len:
-                rlcoded.append(0)
-                rlcoded.append(zero_count)
+                # max number of zeros reached
+                rlcoded.append(0)  # indicator of zeros
+                rlcoded.append(zero_count)  # number of zeros
                 zero_count = 0
         else:
             if zero_count > 0:
@@ -354,8 +359,11 @@ def huffman_encode(rlcoded):
         huffcoded : List or String of 0s and 1s code to be sent or stored
         code_dict (dict): dict of symbol : code in binary
     """
+    # get a dictionary of the frequency of each symbol
     counts_dict = dict(pd.Series(rlcoded).value_counts())
+    # get the huffman encoding dictionary / map
     code_dict = h_encode(counts_dict)
     # list of strings to one joined string
+    # encode each symbol to a string of zeros and ones and stitch together
     huffcoded = ''.join([code_dict[i] for i in rlcoded])
     return huffcoded, code_dict
