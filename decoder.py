@@ -30,12 +30,16 @@ def run_length_decode(rlcoded):
     # Local Variables
     serialized = []
     i = 0
-    # Local Variables
     while i < len(rlcoded):
         if rlcoded[i] == 0:
+            # found some zeros
+            # add n number of zeros to result
+            # where n is the subsequent number
             serialized.extend([0]*rlcoded[i+1])
+            # take two steps
             i += 2
         else:
+            # non-zero number, add it and take one step
             serialized.append(rlcoded[i])
             i += 1
     return np.asarray(serialized)
