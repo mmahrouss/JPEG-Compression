@@ -273,7 +273,7 @@ def generate_indecies_zigzag(rows=8, cols=8):
     return forReturn
 
 
-def serialize(quantized_dct_image):
+def serialize(quantized_dct_image,jpeg2000):
     """
     Serializes the quantized image
     Args:
@@ -291,17 +291,45 @@ def serialize(quantized_dct_image):
     #  add that particular element to the list either at the beginning or
     #  at the end if sum of i and j is either even or odd respectively.
     #  Print the solution list as it is.
-    rows, columns = quantized_dct_image[0].shape
-    output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
 
-    for matrix in quantized_dct_image:
+    if not jpeg2000:
+        rows, columns = quantized_dct_image[0].shape
+        output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
+        for matrix in quantized_dct_image:
+            step = 0
+            for i, j in generate_indecies_zigzag(rows, columns):
+                output[step] = matrix[i, j]
+                step += 1
+    else:
+        rows, columns = quantized_dct_image.shape
+        output = np.zeros(rows*columns, dtype='int')
         step = 0
         for i, j in generate_indecies_zigzag(rows, columns):
-            output[step] = matrix[i, j]
+            output[step] = quantized_dct_image[i, j]
             step += 1
 
+    
     return output
 
+def dwt_serialize(filtered_image,output,Length):
+    """
+    seralizes the filtered image
+    args:
+    filtered_image(list): a list of the filtered_images, each element could contain a list of numpy arrays or a numpy array 
+    this is dealt with dynamicaly within the function 
+
+    output: a 1D list that contains all the data serialized
+    the list is given empty at the start and returns with the data
+    """
+    for i in filtered_image:
+        if isinstance(i,list):
+            output_temp,length_temp=dwt_serialize(i,[],[])
+            output+=output_temp
+            length+=length_temp
+        else: 
+            output=output+(serialize(i,True).tolist())
+            length=length+[len(serialize(i,True).tolist())]
+    return output,length
 
 def run_length_code(serialized):
     """

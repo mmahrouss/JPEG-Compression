@@ -93,7 +93,9 @@ def idct(dct_values):
         sub_image (numpy ndarray): image in pixels
          with same size as input
     """
-
+def idwt(filtered_image,quantization_Array):
+    """
+    """
 
 def apply_idct_to_all(subdivded_dct_values):
     """
