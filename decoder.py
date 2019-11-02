@@ -1,7 +1,6 @@
-import numpy as np
-import pandas as pd
-from huffman import decode as h_decode
 from encoder import generate_indecies_zigzag
+import numpy as np
+from huffman import decode as h_decode
 
 
 def huffman_decode(huffcoded, code_dict):
@@ -142,7 +141,7 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
         of divided images.
 
     """
-    image_reconstructed = np.zeros((n_rows*box_size,n_cols*box_size))
+    image_reconstructed = np.zeros((n_rows*box_size, n_cols*box_size), dtype=np.uint8)
     c = 0
     # break down the image into blocks
     for i in range(n_rows):
