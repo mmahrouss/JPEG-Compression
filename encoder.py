@@ -111,8 +111,8 @@ def apply_dct_to_all(subdivded_image):
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
 
+def dwt(image,quantization_Array):
 
-def dwt(image):
     """
     Gets an image of arbitrary size
     and return an array of the same size containing 4 different versions of the image
@@ -120,55 +120,96 @@ def dwt(image):
     different combinations
     Args:
         image (numpy ndarray): Image input we want to transform.
-         Should have shape (length, width, n_channels)
-          e. g. n_channels = 3 for RGB
-         box_size (int): Size of the box sub images
+         Should have shape (length, width)
+          
+         quantization_Array (List of ints): An array that contains four values for the quantization of each image
+        should be 1D and have 4 elements
     Returns:
         filtered_image (numpy ndarray): array of the 4 images [LL,LH,HL,HH]
          - should have a shape of (X, box_size, box_size, n_channels).
 
     """
-    # Create the high pass and low pass filters
+    #Create the high pass and low pass filters
+    LPF=[-0.125,0.25,0.75,0.25,-0.125]
+    HPF=[-0.5,1,-0.5]
 
-    LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
-    HPF = [-0.5, 1, -0.5]
-
-    image = image.convert('L')
+    
     image_array = np.asarray(image)
-    # convert image to Greyscale to simplify the operations
-    #image = image.convert('L')
+    nrow = np.int(image_array.shape[0])
+    ncol = np.int(image_array.shape[1])
 
-    n_rows = np.int(image_array.shape[0])
-    n_cols = np.int(image_array.shape[1])
+    #create an array that will contain the 4 different types of the image
+    LL=np.zeros((nrow,ncol))
+    LH=np.zeros((nrow,ncol))
+    HL=np.zeros((nrow,ncol))
+    HH=np.zeros((nrow,ncol))
+    LowPass_rows=np.zeros((nrow,ncol))
+    HighPass_rows=np.zeros((nrow,ncol))
+    filtered_image=[LL,LH,HL,HH]
+    #filtering the rows using a low pass and high pass filters 
+    for i in range(0,nrow):
+        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
+        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
+    for i in range(0,ncol):
+        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
+        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
+        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
+        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
+        
+    #downsampling by 2 on both rows and columns
+    for i in range(0,len(filtered_image)):
+        filtered_image[i]=filtered_image[i][1:filtered_image[i].shape[0]:2,1:filtered_image[i].shape[1]:2]
+        filtered_image[i]=filtered_image[i]/quantization_Array[i]
 
-    # make the image into a square to simplify operations based
-    #  on the smaller dimension
-    d = min(n_cols, n_rows)
-    image = image.resize((n_rows, n_cols))
-
-    # create an array that will contain the 4 different types of the image
-    LL = np.zeros((n_rows, n_cols))
-    LH = np.zeros((n_rows, n_cols))
-    HL = np.zeros((n_rows, n_cols))
-    HH = np.zeros((n_rows, n_cols))
-    LowPass_rows = np.zeros((n_rows, n_cols))
-    HighPass_rows = np.zeros((n_rows, n_cols))
-    filtered_image = [LL, LH, HL, HH]
-    # filtering the rows using a low pass and high pass filters
-    for i in range(0, n_rows):
-        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
-        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
-    for i in range(0, n_cols):
-        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
-        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
-        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
-        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
-
-    # downsampling by 2 on both rows and columns
-    for i in filtered_image:
-        i = i[1:i.shape[0]:2, 1:i.shape[1]:2]
 
     return filtered_image
+
+def dwt_levels(filtered_image,Levels,quantization_Array):
+    """
+    Gets an array of 4 elements (the output of the dwt function)
+    and return an array by replacing the elements of the list that are addressed through the
+    Levels array by dwt versions of them (replace 1 element with a List of 4 elements)
+    
+    Args:
+        filtered_image (numpy ndarray): The output of the dwt function that would be decomposed further.
+         should have 4 elements
+
+        quantization_Array (List): An array that contains four values for the quantization of each image
+        should have 4 elemets
+
+        Levels (a list of lists): The parts of the image that will be decomposed further.
+        The Levels list should look like this [[0],[0,1],[1]]
+        The above list means that the LL image would be decomposed again, then the new LH that was created from the LL image would 
+        be decomposed again, then the LH of the original image would be decomposed
+        Adressing should use this code below
+        LL:0
+        LH:1
+        HL:2
+        HH:3
+
+    """
+    for i in range(0,len(Levels)):
+        
+
+        if len(Levels[i])>i+1:
+            raise Exception('The Array is not sorted correctly.An element that does not exist is called. The value of the subarray was: {}'.format(Levels[i]))
+
+        if len(Levels[i])>3:
+            raise Exception('The length of each subarray should not exceed 3. The value of the subarray was: {}'.format(Levels[i]))
+
+
+        if len(Levels[i])==1:
+            
+            filtered_image[Levels[i][0]]=dwt(filtered_image[Levels[i][0]],quantization_Array)
+        
+
+        if len(Levels[i])==2:
+            
+            filtered_image[Levels[i][0]][Levels[i][1]]=dwt(filtered_image[Levels[i][0]][Levels[i][1]],quantization_Array)
+            
+        if len(Levels[i])==3:
+            
+            filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]]=dwt(filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]],quantization_Array)
 
 
 def quantize(dct_divided_image, quantization_table):
