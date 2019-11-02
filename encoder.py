@@ -57,10 +57,12 @@ def get_sub_images(image_array, box_size=8):
                                for i in range(n_rows*n_cols)], dtype='uint8')
 
     # break down the image into blocks
+    c = 0
     for i in range(n_rows):
         for j in range(n_cols):
-            image_blocks[i] = image_array[i*box_size: i*box_size+box_size,
+            image_blocks[c] = image_array[i*box_size: i*box_size+box_size,
                                           j*box_size:j*box_size+box_size]
+            c += 1
 
     # If you want to reconvert the output of this function into images,
     #  use the following line:
@@ -301,9 +303,8 @@ def serialize(quantized_dct_image):
     #  Print the solution list as it is.
     rows, columns = quantized_dct_image[0].shape
     output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
-
+    step = 0
     for matrix in quantized_dct_image:
-        step = 0
         for i, j in generate_indecies_zigzag(rows, columns):
             output[step] = matrix[i, j]
             step += 1
