@@ -104,13 +104,13 @@ def idct(dct_values):
     def basis(u, v):
         return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
                       np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
-
-    outblock = np.zeros((b, b))
-
+    
+    outblock = np.zeros((b,b))
+    
     for x in range(b):
         for y in range(b):
-            outblock = outblock + dct_values[x, y] * basis(x, y)
-
+            outblock = outblock + dct_values[x,y] * basis(x,y) 
+            
     return outblock
 
 
@@ -125,9 +125,7 @@ def apply_idct_to_all(subdivded_dct_values):
         - should have a shape of (X, box_size, box_size, n_channels)
          with dct applied to all of them
     """
-    return np.array([idct(sub_image).round().astype(np.uint8) for
-                     sub_image in subdivded_dct_values])
-
+    return np.array([idct(sub_image).round().astype(np.uint8) for sub_image in subdivded_dct_values])
 
 def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     """
@@ -144,17 +142,17 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
         of divided images.
 
     """
-    image_reconstructed = np.zeros((n_rows*box_size, n_cols*box_size))
+    image_reconstructed = np.zeros((n_rows*box_size,n_cols*box_size))
     c = 0
     # break down the image into blocks
     for i in range(n_rows):
         for j in range(n_cols):
-            image_reconstructed[i*box_size: i*box_size+box_size,
+            image_reconstructed[i*box_size: i*box_size+box_size, 
                                 j*box_size:j*box_size+box_size] = divided_image[c]
             c += 1
-
+            
     # If you want to reconvert the output of this function into images,
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
-
+    
     return image_reconstructed
