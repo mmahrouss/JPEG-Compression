@@ -57,13 +57,13 @@ def deserialize(serialized, n_blocks, box_size):
            with dtype Int
     """
     rows = columns = box_size
-    output = np.zeros((n_blocks,rows,columns))
+    output = np.zeros((n_blocks, rows, columns))
     step = 0
     for matrix in output:
         for i, j in generate_indecies_zigzag(box_size, box_size):
-            matrix[i,j] = serialized[step]
+            matrix[i, j] = serialized[step]
             step += 1
-    
+
     return output
 
 
@@ -81,7 +81,7 @@ def dequantize(quantized, quantization_table):
           same shape as dct_values but element type ints
     """
     # element by ekement multiplication. Equivelant to np.multiply()
-    return np.array([block * quantization_table for block in quantized]) 
+    return np.array([block * quantization_table for block in quantized])
 
 
 def idct(dct_values):
@@ -108,12 +108,15 @@ def apply_idct_to_all(subdivded_dct_values):
     """
 
 
-def get_reconstructed_image(divided_image, box_size=8):
+def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     """
     Gets an array of (box_size,box_size) pixels
     and returns the reconstructed image
     Args:
         divided_image (numpy ndarray, dtype = "uint8"): array of divided images
+        n_rows: number of rows or blocks
+        n_cols: number of columns in image
+            the number of blocks is n_rows*n_cols
         box_size (int): Size of the box sub images
     Returns:
         reconstructed_image (numpy ndarray): Image reconstructed from the array
