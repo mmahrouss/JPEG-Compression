@@ -108,12 +108,15 @@ def apply_idct_to_all(subdivded_dct_values):
     """
 
 
-def get_reconstructed_image(divided_image, box_size=8):
+def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     """
     Gets an array of (box_size,box_size) pixels
     and returns the reconstructed image
     Args:
         divided_image (numpy ndarray, dtype = "uint8"): array of divided images
+        n_rows: number of rows or blocks
+        n_cols: number of columns in image
+            the number of blocks is n_rows*n_cols
         box_size (int): Size of the box sub images
     Returns:
         reconstructed_image (numpy ndarray): Image reconstructed from the array

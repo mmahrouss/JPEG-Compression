@@ -18,10 +18,10 @@ def reshape_image(image, box_size=8):
     # convert image to Greyscale to smiplify the operations
     image = image.convert('L')
 
-    nrow = np.int(np.floor(image.size[0]/box_size))
-    ncol = np.int(np.floor(image.size[1]/box_size))
+    n_rows = np.int(np.floor(image.size[0]/box_size))
+    n_cols = np.int(np.floor(image.size[1]/box_size))
 
-    image = image.resize((nrow*box_size, ncol*box_size))
+    image = image.resize((n_rows*box_size, n_cols*box_size))
 
     image_array = np.asarray(image)  # convert image to numpy array
     return image_array
@@ -38,25 +38,25 @@ def get_sub_images(image_array, box_size=8):
     Returns:
         divided_image (numpy ndarray, dtype = "uint8"): array of divided images
          - should have a shape of (X, box_size, box_size, n_channels).
-        nrow: number of rows or blocks
-        ncol: number of columns in image
-        the number of blocks is nrow*ncol
+        n_rows: number of rows or blocks
+        n_cols: number of columns in image
+          the number of blocks is n_rows*n_cols
     """
-    nrow = np.int(image_array.shape[0]/box_size)
-    ncol = np.int(image_array.shape[1]/box_size)
+    n_rows = np.int(image_array.shape[0]/box_size)
+    n_cols = np.int(image_array.shape[1]/box_size)
 
     # make the image into a square to simplify operations based
     #  on the smaller dimension
-    # d = min(ncol, nrow)
+    # d = min(n_cols, n_rows)
 
     # Note: images are converted to uint8 datatypes since they range between
     #  0-255. different datatypes might misbehave (based on my trials)
     image_blocks = np.asarray([np.zeros((box_size, box_size), dtype='uint8')
-                               for i in range(nrow*ncol)], dtype='uint8')
+                               for i in range(n_rows*n_cols)], dtype='uint8')
 
     # break down the image into blocks
-    for i in range(nrow):
-        for j in range(ncol):
+    for i in range(n_rows):
+        for j in range(n_cols):
             image_blocks[i] = image_array[i*box_size: i*box_size+box_size,
                                           j*box_size:j*box_size+box_size]
 
@@ -64,7 +64,7 @@ def get_sub_images(image_array, box_size=8):
     #  use the following line:
     #block_image = Image.fromarray(output[idx])
 
-    return image_blocks, nrow, ncol
+    return image_blocks, n_rows, n_cols
 
 
 def dct(sub_image):
@@ -138,27 +138,27 @@ def dwt(image):
     # convert image to Greyscale to simplify the operations
     #image = image.convert('L')
 
-    nrow = np.int(image_array.shape[0])
-    ncol = np.int(image_array.shape[1])
+    n_rows = np.int(image_array.shape[0])
+    n_cols = np.int(image_array.shape[1])
 
     # make the image into a square to simplify operations based
     #  on the smaller dimension
-    d = min(ncol, nrow)
-    image = image.resize((nrow, ncol))
+    d = min(n_cols, n_rows)
+    image = image.resize((n_rows, n_cols))
 
     # create an array that will contain the 4 different types of the image
-    LL = np.zeros((nrow, ncol))
-    LH = np.zeros((nrow, ncol))
-    HL = np.zeros((nrow, ncol))
-    HH = np.zeros((nrow, ncol))
-    LowPass_rows = np.zeros((nrow, ncol))
-    HighPass_rows = np.zeros((nrow, ncol))
+    LL = np.zeros((n_rows, n_cols))
+    LH = np.zeros((n_rows, n_cols))
+    HL = np.zeros((n_rows, n_cols))
+    HH = np.zeros((n_rows, n_cols))
+    LowPass_rows = np.zeros((n_rows, n_cols))
+    HighPass_rows = np.zeros((n_rows, n_cols))
     filtered_image = [LL, LH, HL, HH]
     # filtering the rows using a low pass and high pass filters
-    for i in range(0, nrow):
+    for i in range(0, n_rows):
         LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
         HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
-    for i in range(0, ncol):
+    for i in range(0, n_cols):
         LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
         LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
         HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
@@ -294,6 +294,10 @@ def run_length_code(serialized):
                 rlcoded.append(zero_count)
                 zero_count = 0
             rlcoded.append(number)
+    # for handeling trailing zeros
+    if zero_count > 0:
+        rlcoded.append(0)
+        rlcoded.append(zero_count)
     # logic
     return np.asarray(rlcoded)
 
