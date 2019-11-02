@@ -120,22 +120,16 @@ def dwt(image):
 
     """
     #Create the high pass and low pass filters
-
     LPF=[-0.125,0.25,0.75,0.25,-0.125]
     HPF=[-0.5,1,-0.5]
 
+    # convert image to Greyscale to simplify the operations
     image=image.convert('L')
     image_array = np.asarray(image)
-    # convert image to Greyscale to simplify the operations
-    #image = image.convert('L')
-
+    
+    
     nrow = np.int(image_array.shape[0])
     ncol = np.int(image_array.shape[1])
-
-    # make the image into a square to simplify operations based
-    #  on the smaller dimension
-    d = min(ncol, nrow)
-    image = image.resize((nrow, ncol))
 
     #create an array that will contain the 4 different types of the image
     LL=np.zeros((nrow,ncol))
