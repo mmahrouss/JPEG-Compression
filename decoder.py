@@ -1,7 +1,6 @@
-import numpy as np
-import pandas as pd
-from huffman import decode as h_decode
 from encoder import generate_indecies_zigzag
+import numpy as np
+from huffman import decode as h_decode
 
 
 def huffman_decode(huffcoded, code_dict):
@@ -30,18 +29,22 @@ def run_length_decode(rlcoded):
     # Local Variables
     serialized = []
     i = 0
-    # Local Variables
     while i < len(rlcoded):
         if rlcoded[i] == 0:
+            # found some zeros
+            # add n number of zeros to result
+            # where n is the subsequent number
             serialized.extend([0]*rlcoded[i+1])
+            # take two steps
             i += 2
         else:
+            # non-zero number, add it and take one step
             serialized.append(rlcoded[i])
             i += 1
     return np.asarray(serialized)
 
 
-def deserialize(serialized, n_blocks, box_size):
+def deserialize(serialized, n_blocks, box_size=8):
     """
     Removes serialization from quantized DCT values.
     Args:
@@ -93,9 +96,22 @@ def idct(dct_values):
         sub_image (numpy ndarray): image in pixels
          with same size as input
     """
-def idwt(filtered_image,quantization_Array):
-    """
-    """
+    b = dct_values.shape[0]  # block size
+    i = j = np.arange(b)
+    # basis function
+
+    def basis(u, v):
+        return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
+                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+
+    outblock = np.zeros((b, b))
+
+    for x in range(b):
+        for y in range(b):
+            outblock = outblock + dct_values[x, y] * basis(x, y)
+
+    return outblock
+
 
 def apply_idct_to_all(subdivded_dct_values):
     """
@@ -108,6 +124,8 @@ def apply_idct_to_all(subdivded_dct_values):
         - should have a shape of (X, box_size, box_size, n_channels)
          with dct applied to all of them
     """
+    return np.array([idct(sub_image).round().astype(np.uint8) for
+                     sub_image in subdivded_dct_values])
 
 
 def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
@@ -125,3 +143,18 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
         of divided images.
 
     """
+    image_reconstructed = np.zeros((n_rows*box_size, n_cols*box_size),
+                                   dtype=np.uint8)
+    c = 0
+    # break down the image into blocks
+    for i in range(n_rows):
+        for j in range(n_cols):
+            image_reconstructed[i*box_size: i*box_size+box_size,
+                                j*box_size:j*box_size+box_size] = divided_image[c]
+            c += 1
+
+    # If you want to reconvert the output of this function into images,
+    #  use the following line:
+    #block_image = Image.fromarray(output[idx])
+
+    return image_reconstructed
