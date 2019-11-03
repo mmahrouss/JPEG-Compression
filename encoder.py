@@ -120,7 +120,7 @@ def dwt(image,quantization_Array):
     Gets an image of arbitrary size
     and return an array of the same size containing 4 different versions of the image
     by filtering the rows and colums using a low pass or a high pass filter with the
-    different combinations
+    different combinations and quantized by the quantization array
     Args:
         image (numpy ndarray): Image input we want to transform.
          Should have shape (length, width)
@@ -130,16 +130,20 @@ def dwt(image,quantization_Array):
         should be 1D and have 4 elements
     Returns:
         filtered_image (numpy ndarray): array of the 4 images [LL,LH,HL,HH]
-         - should have a shape of (X, box_size, box_size, n_channels).
+         - should have a shape of (X, box_size, box_size).
 
     """
     # Create the high pass and low pass filters
     LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
     HPF = [-0.5, 1, -0.5]
 
+    #change the array into a box array
     image_array = np.asarray(image)
     nrow = np.int(image_array.shape[0])
     ncol = np.int(image_array.shape[1])
+    nrow=min(nrow,ncol)
+    ncol=nrow
+    image_array=image_array[0:nrow,0:ncol]
 
     #create an array that will contain the 4 different types of the image
     LL=np.zeros((nrow,ncol))
@@ -280,6 +284,33 @@ def generate_indecies_zigzag(rows=8, cols=8):
 
     return forReturn
 
+def dwt_serialize(filtered_image,output,length):
+    """
+    This function takes the output of the dwt_levels and serializes the list.
+    The serialization is done by order of apperance in the filtered_image
+    e.g.:[[LL,LH,HL,HH],LH,HL,HH] 
+    is serialized by taking the first element , if found to be a list then the elements within this list
+    would each be serialized and appended to to the output list, if found to be a numpy array then it would be serialized 
+    without further steps.
+
+    args:
+    filtered_image(list): This should be a list that can contain either numpy arrays or a list of numpy arrays 
+    output(list): should be passed as an empty list that will contain the final serialized data of the image
+    length(list):should be passed as an empty list that will contain the serialized length of each numpy array within the filtered_image
+
+
+    """
+    for i in filtered_image:
+        if isinstance(i,list):
+            #append the output of the recursion to the main arguments (output,length)
+            output_temp,length_temp=dwt_serialize(i,[],[])
+            output+=output_temp
+            length+=length_temp
+        else: 
+            #append the data of the serialized elements to the main arguments(output,length)
+            output=output+(serialize(i,True).tolist())
+            length=length+[len(serialize(i,True).tolist())]
+    return output,length
 
 def serialize(quantized_dct_image,jpeg2000):
     """
