@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from huffman import encode as h_encode
-from scipy.signal import lfilter
+from scipy.signal import lfilter,filtfilt
 
 
 def reshape_image(image, box_size=8):
@@ -188,18 +188,19 @@ def dwt(image_array, quantization_Array):
     filtered_image = [LL, LH, HL, HH]
     # filtering the rows using a low pass and high pass filters
     for i in range(0, nrow):
-        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
-        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
+        LowPass_rows[i, :] = filtfilt(LPF, 1.0, image_array[i, :])
+        HighPass_rows[i, :] = filtfilt(HPF, 1.0, image_array[i, :])
+    for i in range(0, len(filtered_image)):
+        filtered_image[i] = filtered_image[i][0:filtered_image[i].shape[0]:2,:]
     for i in range(0, ncol):
-        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
-        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
-        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
-        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
+        LL[:, i] = filtfilt(LPF, 1.0, LowPass_rows[:, i])
+        LH[:, i] = filtfilt(HPF, 1.0, LowPass_rows[:, i])
+        HL[:, i] = filtfilt(LPF, 1.0, HighPass_rows[:, i])
+        HH[:, i] = filtfilt(HPF, 1.0, HighPass_rows[:, i])
 
     # downsampling by 2 on both rows and columns
     for i in range(0, len(filtered_image)):
-        filtered_image[i] = filtered_image[i][1:filtered_image[i].shape[0]:2,
-                                              1:filtered_image[i].shape[1]:2]
+        filtered_image[i] = filtered_image[i][:,0:filtered_image[i].shape[1]:2]
         filtered_image[i] = filtered_image[i]/quantization_Array[i]
 
     return filtered_image
