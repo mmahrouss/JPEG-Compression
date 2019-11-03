@@ -350,26 +350,6 @@ def serialize(quantized_dct_image,jpeg2000):
     
     return output
 
-def dwt_serialize(filtered_image,output,Length):
-    """
-    seralizes the filtered image
-    args:
-    filtered_image(list): a list of the filtered_images, each element could contain a list of numpy arrays or a numpy array 
-    this is dealt with dynamicaly within the function 
-
-    output: a 1D list that contains all the data serialized
-    the list is given empty at the start and returns with the data
-    """
-    for i in filtered_image:
-        if isinstance(i,list):
-            output_temp,length_temp=dwt_serialize(i,[],[])
-            output+=output_temp
-            length+=length_temp
-        else: 
-            output=output+(serialize(i,True).tolist())
-            length=length+[len(serialize(i,True).tolist())]
-    return output,length
-
 def run_length_code(serialized):
     """
     Applied run length coding to the serialized image.
