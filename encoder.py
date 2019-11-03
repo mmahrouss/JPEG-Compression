@@ -312,7 +312,7 @@ def dwt_serialize(filtered_image,output,length):
             length=length+[len(serialize(i,True).tolist())]
     return output,length
 
-def serialize(quantized_dct_image,jpeg2000):
+def serialize(quantized_dct_image, jpeg2000=False):
     """
     Serializes the quantized image
     Args:
@@ -334,8 +334,8 @@ def serialize(quantized_dct_image,jpeg2000):
     if not jpeg2000:
         rows, columns = quantized_dct_image[0].shape
         output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
+        step = 0
         for matrix in quantized_dct_image:
-            step = 0
             for i, j in generate_indecies_zigzag(rows, columns):
                 output[step] = matrix[i, j]
                 step += 1
