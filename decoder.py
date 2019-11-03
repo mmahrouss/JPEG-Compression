@@ -1,4 +1,4 @@
-from encoder import generate_indecies_zigzag
+from encoder import generate_indecies_zigzag, __basis_generator
 import numpy as np
 from huffman import decode as h_decode
 
@@ -87,7 +87,7 @@ def dequantize(quantized, quantization_table):
     return np.array([block * quantization_table for block in quantized])
 
 
-def idct(dct_values):
+def idct(dct_values, basis):
     """
     Applies Inverse Discrete Cosine Transform on DCT values:
     Args:
@@ -97,12 +97,6 @@ def idct(dct_values):
          with same size as input
     """
     b = dct_values.shape[0]  # block size
-    i = j = np.arange(b)
-    # basis function
-
-    def basis(u, v):
-        return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
-                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
 
     outblock = np.zeros((b, b))
 
@@ -124,8 +118,14 @@ def apply_idct_to_all(subdivded_dct_values):
         - should have a shape of (X, box_size, box_size, n_channels)
          with dct applied to all of them
     """
-    return np.array([idct(sub_image).round().astype(np.uint8) for
-                     sub_image in subdivded_dct_values])
+    # values can be slightly less than 0.0 e.g -0.5
+    # or more than 255 like 255.5
+    # that is why we clip.
+    # next we rounf that cast to an 8bit unsigned integer
+    basis = __basis_generator(subdivded_dct_values.shape[1])
+    return np.array([idct(sub_image, basis).clip(min=0, max=255).round()
+                     for
+                     sub_image in subdivded_dct_values]).astype(np.uint8)
 
 
 def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):

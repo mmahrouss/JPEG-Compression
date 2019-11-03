@@ -70,8 +70,28 @@ def get_sub_images(image_array, box_size=8):
 
     return image_blocks, n_rows, n_cols
 
+def __basis_generator(b=8):
+    """
+        Helper local function to generate dct basis and cache them
+        if the basis is calculated before it gets re-used again
+        Args:
+            b (int): Size of the box sub images
+        Returns: basis (function): function that takes u,v and returns the 
+                                basis matrix and caches it 
+    """
+    i = j = np.arange(b)
+    basis_cache = {}
+    def helper(u,v):
+        base = basis_cache.get((u,v), None)
+        if base is None:
+            base =  np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
+                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+            basis_cache[(u,v)] = base 
+        return base
+    return lambda u, v: helper(u,v)
 
-def dct(sub_image):
+
+def dct(sub_image, basis):
     """
     Applies Discrete Cosine Transform on a square image:
     Args:
@@ -81,13 +101,6 @@ def dct(sub_image):
          with same size as input
     """
     b = sub_image.shape[0]  # block size
-    i = j = np.arange(b)
-    # basis function
-
-    def basis(u, v):
-        return np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
-                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
-    # scaling function
 
     def scale(idx):
         return 2 if idx == 0 else 1
@@ -113,7 +126,8 @@ def apply_dct_to_all(subdivded_image):
         - should have a shape of (X, box_size, box_size, n_channels)
          with dct applied to all of them
     """
-    return np.array([dct(sub_image) for sub_image in subdivded_image])
+    basis = __basis_generator(subdivded_image.shape[1])
+    return np.array([dct(sub_image, basis) for sub_image in subdivded_image])
 
 def dwt(image,quantization_Array):
     """
@@ -235,8 +249,8 @@ def quantize(dct_divided_image, quantization_table):
         quantized_dct_image (numpy ndarray): array of quantized image.
           same shape as dct_divided_image but element type ints
     """
-    return np.array([sub_image // quantization_table for sub_image in
-                     dct_divided_image])
+    return np.array([(sub_image / quantization_table).round().astype(int)
+                     for sub_image in dct_divided_image])
 
 
 def generate_indecies_zigzag(rows=8, cols=8):
