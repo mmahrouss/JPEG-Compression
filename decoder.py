@@ -1,7 +1,7 @@
 from encoder import generate_indecies_zigzag, __basis_generator
 import numpy as np
 from huffman import decode as h_decode
-from scipy.signal import lfilter
+from scipy.signal import lfilter, filtfilt
 
 
 def huffman_decode(huffcoded, code_dict):
