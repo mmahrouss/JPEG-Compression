@@ -1,7 +1,7 @@
 from encoder import generate_indecies_zigzag, __basis_generator
 import numpy as np
 from huffman import decode as h_decode
-from scipy.signal import lfilter 
+from scipy.signal import lfilter
 
 
 def huffman_decode(huffcoded, code_dict):
@@ -107,37 +107,45 @@ def idct(dct_values, basis):
 
     return outblock
 
-def idwt(filtered_image,quantization_Array):
-    
-    for i in range(0,len(filtered_image)):
-        filtered_image[i]=filtered_image[i]*quantization_Array[i]
-            
-    LPF=[0.5,1,0.5]
-    HPF=[-0.125,-0.25,0.75,-0.25,-0.125]
-    LowPass1_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]))
-    LowPass1_rows[::2,:] = filtered_image[0] 
-    LowPass2_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]))
-    LowPass2_rows[::2,:] = filtered_image[1]
-    HighPass1_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]))
-    HighPass1_rows[::2,:] = filtered_image[2]
-    HighPass2_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]))
-    HighPass2_rows[::2,:] = filtered_image[3]
-    for i in range(0,LowPass1_rows.shape[1]):
-        LowPass1_rows[:,i]=lfilter(LPF,1.0,LowPass1_rows[:,i])
-        LowPass2_rows[:,i]=lfilter(HPF,1.0,LowPass2_rows[:,i])
-        HighPass1_rows[:,i]=lfilter(LPF,1.0,HighPass1_rows[:,i])
-        HighPass2_rows[:,i]=lfilter(HPF,1.0,HighPass2_rows[:,i])
-    LowPass_temp=LowPass1_rows+LowPass2_rows
-    LowPass_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]*2))
-    LowPass_rows[:,::2]=LowPass_temp
-    HighPass_temp=HighPass1_rows+HighPass2_rows
-    HighPass_rows=np.zeros((filtered_image[0].shape[0]*2,filtered_image[0].shape[1]*2))
-    HighPass_rows[:,::2]=HighPass_temp
+
+def idwt(filtered_image, quantization_Array):
+
+    for i in range(0, len(filtered_image)):
+        filtered_image[i] = filtered_image[i]*quantization_Array[i]
+
+    LPF = [0.5, 1, 0.5]
+    HPF = [-0.125, -0.25, 0.75, -0.25, -0.125]
+    LowPass1_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]))
+    LowPass1_rows[::2, :] = filtered_image[0]
+    LowPass2_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]))
+    LowPass2_rows[::2, :] = filtered_image[1]
+    HighPass1_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]))
+    HighPass1_rows[::2, :] = filtered_image[2]
+    HighPass2_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]))
+    HighPass2_rows[::2, :] = filtered_image[3]
+    for i in range(0, LowPass1_rows.shape[1]):
+        LowPass1_rows[:, i] = lfilter(LPF, 1.0, LowPass1_rows[:, i])
+        LowPass2_rows[:, i] = lfilter(HPF, 1.0, LowPass2_rows[:, i])
+        HighPass1_rows[:, i] = lfilter(LPF, 1.0, HighPass1_rows[:, i])
+        HighPass2_rows[:, i] = lfilter(HPF, 1.0, HighPass2_rows[:, i])
+    LowPass_temp = LowPass1_rows+LowPass2_rows
+    LowPass_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]*2))
+    LowPass_rows[:, ::2] = LowPass_temp
+    HighPass_temp = HighPass1_rows+HighPass2_rows
+    HighPass_rows = np.zeros(
+        (filtered_image[0].shape[0]*2, filtered_image[0].shape[1]*2))
+    HighPass_rows[:, ::2] = HighPass_temp
     print(LowPass_rows.shape)
-    for i in range(0,LowPass_rows.shape[0]):
-        HighPass_rows[i,:]=lfilter(HPF,1.0,HighPass_rows[i,:])
-        LowPass_rows[i,:]=lfilter(LPF,1.0,LowPass_rows[i,:])
+    for i in range(0, LowPass_rows.shape[0]):
+        HighPass_rows[i, :] = lfilter(HPF, 1.0, HighPass_rows[i, :])
+        LowPass_rows[i, :] = lfilter(LPF, 1.0, LowPass_rows[i, :])
     return HighPass_rows+LowPass_rows
+
 
 def apply_idct_to_all(subdivded_dct_values):
     """
@@ -193,17 +201,17 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     return image_reconstructed
 
 
-def dwt_deserialize(serialized, length,quantization_Array):
+def dwt_deserialize(serialized, length, quantization_Array):
     assert len(length) == 4
     quarter_len = int(len(serialized)/4)
     images = []
     for i in range(4):
         if isinstance(length[i], list):
-            images[i] = dwt_deserialize(serialized[quarter_len*i:
-                                                   quarter_len*i + quarter_len],
-                                        length[i],quantization_Array)
+            images.append(dwt_deserialize(serialized[quarter_len*i:
+                                                     quarter_len*i + quarter_len],
+                                          length[i], quantization_Array))
         else:
-            images[i] = deserialize(serialized[quarter_len*i:
-                                               quarter_len*i + quarter_len],
-                                    1, int(np.sqrt(quarter_len))).squeeze()
-    return idwt(images,quantization_Array)
+            images.append(deserialize(serialized[quarter_len*i:
+                                                 quarter_len*i + quarter_len],
+                                      1, int(np.sqrt(quarter_len))).squeeze())
+    return idwt(images, quantization_Array)
