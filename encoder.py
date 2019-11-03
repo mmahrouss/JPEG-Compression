@@ -352,7 +352,7 @@ def dwt_serialize(filtered_image, output, length):
             # append the output of the recursion to the main arguments (output,
             # length)
             output_temp,length_temp=dwt_serialize(i,[],[])
-            output.append(output_temp)
+            output=+output_temp
             length.append(length_temp)
         else:
             # append the data of the serialized elements to the main arguments
