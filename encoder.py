@@ -115,6 +115,23 @@ def apply_dct_to_all(subdivded_image):
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
 
+def check_image(image):
+    """
+    Check if the image has valid dimensions and if not would resize the image to valid dimensions
+    (valid dimensions are the divisble by 8 on rows and columns since the max level of decompostion is 3)
+    args:
+    image (PIL): image input from the user
+    returns: 
+    image_array()
+    """
+    rows, cols = image.size
+    n_rows = round(rows/8) * 8
+    n_cols = round(cols/8) * 8
+    d=min(n_rows,n_cols)
+    image = image.resize((d,d))
+    image_array=np.asarray(image)
+    return image_array
+
 def dwt(image,quantization_Array):
     """
     Gets an image of arbitrary size
@@ -137,13 +154,8 @@ def dwt(image,quantization_Array):
     LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
     HPF = [-0.5, 1, -0.5]
 
-    #change the array into a box array
-    image_array = np.asarray(image)
-    nrow = np.int(image_array.shape[0])
-    ncol = np.int(image_array.shape[1])
-    nrow=min(nrow,ncol)
-    ncol=nrow
-    image_array=image_array[0:nrow,0:ncol]
+    
+    nrow,ncol=image.shape
 
     #create an array that will contain the 4 different types of the image
     LL=np.zeros((nrow,ncol))
