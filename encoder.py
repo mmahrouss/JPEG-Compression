@@ -13,7 +13,7 @@ def reshape_image(image, box_size=8):
                             grayscaled
         box_size (int): Size of the box sub images
     Returns:
-        image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m 
+        image_array (numpy ndarray, dtype = "uint8"): image reshaped to m x m
         np array.
     """
     # convert image to Greyscale to smiplify the operations
@@ -33,7 +33,8 @@ def get_sub_images(image_array, box_size=8):
     Gets a grayscale image and returns an array of (box_size, box_size)
     elements
     Args:
-        image_array (numpy ndarray): Image input we want to divide to box sub_images.
+        image_array (numpy ndarray): Image input we want to divide to box
+                                     sub_images.
          Should have shape (length, width, n_channels) where length = width
           e. g. n_channels = 3 for RGB
          box_size (int): Size of the box sub images
@@ -66,9 +67,10 @@ def get_sub_images(image_array, box_size=8):
 
     # If you want to reconvert the output of this function into images,
     #  use the following line:
-    #block_image = Image.fromarray(output[idx])
+    # block_image = Image.fromarray(output[idx])
 
     return image_blocks, n_rows, n_cols
+
 
 def __basis_generator(b=8):
     """
@@ -76,19 +78,20 @@ def __basis_generator(b=8):
         if the basis is calculated before it gets re-used again
         Args:
             b (int): Size of the box sub images
-        Returns: basis (function): function that takes u,v and returns the 
-                                basis matrix and caches it 
+        Returns: basis (function): function that takes u,v and returns the
+                                basis matrix and caches it
     """
     i = j = np.arange(b)
     basis_cache = {}
-    def helper(u,v):
-        base = basis_cache.get((u,v), None)
+
+    def helper(u, v):
+        base = basis_cache.get((u, v), None)
         if base is None:
-            base =  np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
-                      np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
-            basis_cache[(u,v)] = base 
+            base = np.dot(np.cos((2*i + 1) * u * np.pi / (2*b)).reshape(-1, 1),
+                          np.cos((2*j + 1) * v * np.pi / (2*b)).reshape(1, -1))
+            basis_cache[(u, v)] = base
         return base
-    return lambda u, v: helper(u,v)
+    return lambda u, v: helper(u, v)
 
 
 def dct(sub_image, basis):
@@ -129,29 +132,34 @@ def apply_dct_to_all(subdivded_image):
     basis = __basis_generator(subdivded_image.shape[1])
     return np.array([dct(sub_image, basis) for sub_image in subdivded_image])
 
+
 def check_image(image):
     """
-    Check if the image has valid dimensions and if not would resize the image to valid dimensions
-    (valid dimensions are the divisble by 8 on rows and columns since the max level of decompostion is 3)
-    args:
-    image (PIL): image input from the user
-    returns: 
-    image_array()
+    Check if the image has valid dimensions and if not would resize the image
+    to valid dimensions
+    (valid dimensions are the divisble by 8 on rows and columns since the max
+     level of decompostion is 3)
+    Args:
+        image (PIL): image input from the user
+    Returns:
+        image_array()
     """
     rows, cols = image.size
     n_rows = round(rows/8) * 8
     n_cols = round(cols/8) * 8
-    d=min(n_rows,n_cols)
-    image = image.resize((d,d))
-    image_array=np.asarray(image)
+    d = min(n_rows, n_cols)
+    image = image.resize((d, d))
+    image_array = np.asarray(image)
     return image_array
 
-def dwt(image_array,quantization_Array):
+
+def dwt(image_array, quantization_Array):
     """
     Gets an image of arbitrary size
-    and return an array of the same size containing 4 different versions of the image
-    by filtering the rows and colums using a low pass or a high pass filter with the
-    different combinations and quantized by the quantization array
+    and return an array of the same size containing 4 different versions of the
+    image by filtering the rows and colums using a low pass or a high pass
+    filter with the different combinations and quantized by the quantization
+    array
     Args:
         image (numpy ndarray): Image input we want to transform.
          Should have shape (length, width)
@@ -168,31 +176,31 @@ def dwt(image_array,quantization_Array):
     LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
     HPF = [-0.5, 1, -0.5]
 
-    
-    nrow,ncol=image_array.shape
+    nrow, ncol = image_array.shape
 
-    #create an array that will contain the 4 different types of the image
-    LL=np.zeros((nrow,ncol))
-    LH=np.zeros((nrow,ncol))
-    HL=np.zeros((nrow,ncol))
-    HH=np.zeros((nrow,ncol))
-    LowPass_rows=np.zeros((nrow,ncol))
-    HighPass_rows=np.zeros((nrow,ncol))
-    filtered_image=[LL,LH,HL,HH]
-    #filtering the rows using a low pass and high pass filters 
-    for i in range(0,nrow):
-        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
-        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
-    for i in range(0,ncol):
-        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
-        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
-        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
-        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
-        
-    #downsampling by 2 on both rows and columns
-    for i in range(0,len(filtered_image)):
-        filtered_image[i]=filtered_image[i][1:filtered_image[i].shape[0]:2,1:filtered_image[i].shape[1]:2]
-        filtered_image[i]=filtered_image[i]/quantization_Array[i]
+    # create an array that will contain the 4 different types of the image
+    LL = np.zeros((nrow, ncol))
+    LH = np.zeros((nrow, ncol))
+    HL = np.zeros((nrow, ncol))
+    HH = np.zeros((nrow, ncol))
+    LowPass_rows = np.zeros((nrow, ncol))
+    HighPass_rows = np.zeros((nrow, ncol))
+    filtered_image = [LL, LH, HL, HH]
+    # filtering the rows using a low pass and high pass filters
+    for i in range(0, nrow):
+        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
+        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
+    for i in range(0, ncol):
+        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
+        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
+        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
+        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
+
+    # downsampling by 2 on both rows and columns
+    for i in range(0, len(filtered_image)):
+        filtered_image[i] = filtered_image[i][1:filtered_image[i].shape[0]:2,
+                                              1:filtered_image[i].shape[1]:2]
+        filtered_image[i] = filtered_image[i]/quantization_Array[i]
 
     return filtered_image
 
@@ -200,17 +208,21 @@ def dwt(image_array,quantization_Array):
 def dwt_levels(filtered_image, Levels, quantization_Array):
     """
     Gets an array of 4 elements (the output of the dwt function)
-    and return an array by replacing the elements of the list that are addressed through the
-    Levels array by dwt versions of them (replace 1 element with a List of 4 elements)
+    and return an array by replacing the elements of the list that are
+    addressed through the Levels array by dwt versions of them (replace 1
+                                             element with a List of 4 elements)
 
     Args:
-        filtered_image (numpy ndarray): The output of the dwt function that would be decomposed further.
+        filtered_image (numpy ndarray): The output of the dwt function that
+        would be decomposed further.
          should have 4 elements
 
-        quantization_Array (List): An array that contains four values for the quantization of each image
+        quantization_Array (List): An array that contains four values for the
+        quantization of each image
         should have 4 elemets
 
-        Levels (a list of lists): The parts of the image that will be decomposed further.
+        Levels (a list of lists): The parts of the image that will be
+        decomposed further.
         The Levels list should look like this [[0],[0,1],[1]]
         The above list means that the LL image would be decomposed again,
         then the new LH that was created from the LL image would be decomposed
@@ -226,11 +238,14 @@ def dwt_levels(filtered_image, Levels, quantization_Array):
 
         if len(Levels[i]) > i+1:
             raise Exception(
-                'The Array is not sorted correctly.An element that does not exist is called. The value of the subarray was: {}'.format(Levels[i]))
+                '''The Array is not sorted correctly.An element that does not
+                exist is called. The value of the subarray
+                was: {}'''.format(Levels[i]))
 
         if len(Levels[i]) > 3:
             raise Exception(
-                'The length of each subarray should not exceed 3. The value of the subarray was: {}'.format(Levels[i]))
+                '''The length of each subarray should not exceed 3.
+                 The value of the subarray was: {}'''.format(Levels[i]))
 
         if len(Levels[i]) == 1:
 
@@ -245,7 +260,8 @@ def dwt_levels(filtered_image, Levels, quantization_Array):
         if len(Levels[i]) == 3:
 
             filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]] = dwt(
-                filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]], quantization_Array)
+                filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]],
+                quantization_Array)
 
 
 def quantize(dct_divided_image, quantization_table):
@@ -310,33 +326,42 @@ def generate_indecies_zigzag(rows=8, cols=8):
 
     return forReturn
 
-def dwt_serialize(filtered_image,output,length):
+
+def dwt_serialize(filtered_image, output, length):
     """
     This function takes the output of the dwt_levels and serializes the list.
     The serialization is done by order of apperance in the filtered_image
     e.g.:[[LL,LH,HL,HH],LH,HL,HH] 
-    is serialized by taking the first element , if found to be a list then the elements within this list
-    would each be serialized and appended to to the output list, if found to be a numpy array then it would be serialized 
-    without further steps.
+    is serialized by taking the first element , if found to be a list then the
+    elements within this list
+    would each be serialized and appended to to the output list, if found to be
+    a numpy array then it would be serialized without further steps.
 
     args:
-    filtered_image(list): This should be a list that can contain either numpy arrays or a list of numpy arrays 
-    output(list): should be passed as an empty list that will contain the final serialized data of the image
-    length(list):should be passed as an empty list that will contain the serialized length of each numpy array within the filtered_image
+    filtered_image(list): This should be a list that can contain either numpy
+                            arrays or a list of numpy arrays 
+    output(list): should be passed as an empty list that will contain the final
+                  serialized data of the image
+    length(list):should be passed as an empty list that will contain the
+             serialized length of each numpy array within the filtered_image
 
 
     """
     for i in filtered_image:
-        if isinstance(i,list):
-            #append the output of the recursion to the main arguments (output,length)
-            output_temp,length_temp=dwt_serialize(i,[],[])
-            output+=output_temp
-            length+=length_temp
-        else: 
-            #append the data of the serialized elements to the main arguments(output,length)
-            output=output+(serialize(i,True).tolist())
-            length=length+[len(serialize(i,True).tolist())]
-    return output,length
+        if isinstance(i, list):
+            # append the output of the recursion to the main arguments (output,
+            # length)
+            output_temp, length_temp = dwt_serialize(i, [], [])
+            output += output_temp
+            length += length_temp
+        else:
+            # append the data of the serialized elements to the main arguments
+            # (output,length)
+            new_output = (serialize(i, True).tolist())
+            output = output+new_output
+            length = length+[len(new_output)]
+    return output, length
+
 
 def serialize(quantized_dct_image, jpeg2000=False):
     """
@@ -373,8 +398,8 @@ def serialize(quantized_dct_image, jpeg2000=False):
             output[step] = quantized_dct_image[i, j]
             step += 1
 
-    
     return output
+
 
 def run_length_code(serialized):
     """

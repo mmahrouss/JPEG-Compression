@@ -4,13 +4,13 @@ import encoder as e
 import decoder as d
 
 table_8_low = [[1,  1,  1,  1,  1,  1,  1,  2],
-                [1,  1,  1,  1,  1,  1,  1,  2],
-                [1,  1,  1,  1,  1,  1,  1,  2],
-                [1,  1,  1,  1,  1,  1,  2,  4],
-                [1,  1,  1,  1,  1,  1,  2,  4],
-                [1,  1,  1,  1,  1,  2,  4,  4],
-                [1,  1,  1,  2,  2,  4,  4,  8],
-                [2,  2,  2,  2,  4,  4,  8,  8]]
+               [1,  1,  1,  1,  1,  1,  1,  2],
+               [1,  1,  1,  1,  1,  1,  1,  2],
+               [1,  1,  1,  1,  1,  1,  2,  4],
+               [1,  1,  1,  1,  1,  1,  2,  4],
+               [1,  1,  1,  1,  1,  2,  4,  4],
+               [1,  1,  1,  2,  2,  4,  4,  8],
+               [2,  2,  2,  2,  4,  4,  8,  8]]
 table_8_high = ([[1,  1,  1,  1,  1,  2,  2,   4],
                  [1,  1,  1,  1,  1,  2,  2,   4],
                  [1,  1,  1,  1,  2,  2,  2,   4],
@@ -27,9 +27,11 @@ table_16_high = np.repeat(np.repeat(table_8_high, 2, axis=0), 2, axis=1)
 def encode(image, box_size, quantization_table):
     """
       Gets an images of arbitrary size
-      and returns a string of a list of 0 and 1 representing the compressed encoded image
+      and returns a string of a list of 0 and 1 representing the compressed
+      encoded image
       Args:
-           image (PIL image): original image that needs to be reshaped and grayscaled
+           image (PIL image): original image that needs to be reshaped and
+                              grayscaled
            box_size (int): Size of the box sub images
            quantization_table (numpy array): Table used to quantize dct values
       Returns:
@@ -58,8 +60,8 @@ def encode(image, box_size, quantization_table):
 
 def decode(huffcoded, code_dict, n_rows, n_cols, box_size, quantization_table):
     """
-      Gets a string of a list of 0 and 1 representing the compressed encoded image
-      and returns a reconstructed image.
+      Gets a string of a list of 0 and 1 representing the compressed encoded
+      image and returns a reconstructed image.
       Args:
            huffcoded : List or String of 0s and 1s code to be sent or stored
            code_dict (dict): dict of symbol : code in binary
@@ -69,8 +71,8 @@ def decode(huffcoded, code_dict, n_rows, n_cols, box_size, quantization_table):
            box_size (int): Size of the box sub images
            quantization_table (numpy array): Table used to quantize dct values
       Returns:
-          reconstructed_image (numpy ndarray): Image reconstructed from the array
-          of divided images.
+          reconstructed_image (numpy ndarray): Image reconstructed from the
+          array of divided images.
     """
     # Huffman Decoding
     rlcoded = d.huffman_decode(huffcoded, code_dict)
