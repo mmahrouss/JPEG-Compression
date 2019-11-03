@@ -182,11 +182,28 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     for i in range(n_rows):
         for j in range(n_cols):
             image_reconstructed[i*box_size: i*box_size+box_size,
-                                j*box_size:j*box_size+box_size] = divided_image[c]
+                                j*box_size:j*box_size+box_size] =\
+                divided_image[c]
             c += 1
 
     # If you want to reconvert the output of this function into images,
     #  use the following line:
-    #block_image = Image.fromarray(output[idx])
+    # block_image = Image.fromarray(output[idx])
 
     return image_reconstructed
+
+
+def dwt_deserialize(serialized, length):
+    assert len(length) == 4
+    quarter_len = int(len(serialized)/4)
+    images = []
+    for i in range(4):
+        if isinstance(length[i], list):
+            images[i] = dwt_deserialize(serialized[quarter_len*i:
+                                                   quarter_len*i + quarter_len],
+                                        length[i])
+        else:
+            images[i] = deserialize(serialized[quarter_len*i:
+                                               quarter_len*i + quarter_len],
+                                    1, int(np.sqrt(quarter_len))).squeeze()
+    return idwt(images)
