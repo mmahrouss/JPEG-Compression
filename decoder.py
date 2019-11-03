@@ -193,7 +193,7 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     return image_reconstructed
 
 
-def dwt_deserialize(serialized, length, quantization_Array):
+def dwt_deserialize(serialized, length,quantization_Array):
     assert len(length) == 4
     quarter_len = int(len(serialized)/4)
     images = []
