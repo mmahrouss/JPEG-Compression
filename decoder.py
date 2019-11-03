@@ -193,7 +193,7 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     return image_reconstructed
 
 
-def dwt_deserialize(serialized, length):
+def dwt_deserialize(serialized, length,quantization_Array):
     assert len(length) == 4
     quarter_len = int(len(serialized)/4)
     images = []
@@ -201,9 +201,9 @@ def dwt_deserialize(serialized, length):
         if isinstance(length[i], list):
             images[i] = dwt_deserialize(serialized[quarter_len*i:
                                                    quarter_len*i + quarter_len],
-                                        length[i])
+                                        length[i],quantization_Array)
         else:
             images[i] = deserialize(serialized[quarter_len*i:
                                                quarter_len*i + quarter_len],
                                     1, int(np.sqrt(quarter_len))).squeeze()
-    return idwt(images)
+    return idwt(images,quantization_Array)
