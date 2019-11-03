@@ -146,7 +146,7 @@ def check_image(image):
     image_array=np.asarray(image)
     return image_array
 
-def dwt(image,quantization_Array):
+def dwt(image_array,quantization_Array):
     """
     Gets an image of arbitrary size
     and return an array of the same size containing 4 different versions of the image
@@ -169,7 +169,7 @@ def dwt(image,quantization_Array):
     HPF = [-0.5, 1, -0.5]
 
     
-    nrow,ncol=image.shape
+    nrow,ncol=image_array.shape
 
     #create an array that will contain the 4 different types of the image
     LL=np.zeros((nrow,ncol))
