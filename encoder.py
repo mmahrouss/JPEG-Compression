@@ -115,13 +115,12 @@ def apply_dct_to_all(subdivded_image):
     """
     return np.array([dct(sub_image) for sub_image in subdivded_image])
 
-
-def dwt(image, quantization_Array):
+def dwt(image,quantization_Array):
     """
     Gets an image of arbitrary size
     and return an array of the same size containing 4 different versions of the image
     by filtering the rows and colums using a low pass or a high pass filter with the
-    different combinations
+    different combinations and quantized by the quantization array
     Args:
         image (numpy ndarray): Image input we want to transform.
          Should have shape (length, width)
@@ -131,40 +130,43 @@ def dwt(image, quantization_Array):
         should be 1D and have 4 elements
     Returns:
         filtered_image (numpy ndarray): array of the 4 images [LL,LH,HL,HH]
-         - should have a shape of (X, box_size, box_size, n_channels).
+         - should have a shape of (X, box_size, box_size).
 
     """
     # Create the high pass and low pass filters
     LPF = [-0.125, 0.25, 0.75, 0.25, -0.125]
     HPF = [-0.5, 1, -0.5]
 
+    #change the array into a box array
     image_array = np.asarray(image)
     nrow = np.int(image_array.shape[0])
     ncol = np.int(image_array.shape[1])
+    nrow=min(nrow,ncol)
+    ncol=nrow
+    image_array=image_array[0:nrow,0:ncol]
 
-    # create an array that will contain the 4 different types of the image
-    LL = np.zeros((nrow, ncol))
-    LH = np.zeros((nrow, ncol))
-    HL = np.zeros((nrow, ncol))
-    HH = np.zeros((nrow, ncol))
-    LowPass_rows = np.zeros((nrow, ncol))
-    HighPass_rows = np.zeros((nrow, ncol))
-    filtered_image = [LL, LH, HL, HH]
-    # filtering the rows using a low pass and high pass filters
-    for i in range(0, nrow):
-        LowPass_rows[i, :] = lfilter(LPF, 1.0, image_array[i, :])
-        HighPass_rows[i, :] = lfilter(HPF, 1.0, image_array[i, :])
-    for i in range(0, ncol):
-        LL[:, i] = lfilter(LPF, 1.0, LowPass_rows[:, i])
-        LH[:, i] = lfilter(HPF, 1.0, LowPass_rows[:, i])
-        HL[:, i] = lfilter(LPF, 1.0, HighPass_rows[:, i])
-        HH[:, i] = lfilter(HPF, 1.0, HighPass_rows[:, i])
-
-    # downsampling by 2 on both rows and columns
-    for i in range(0, len(filtered_image)):
-        filtered_image[i] = filtered_image[i][1:filtered_image[i].shape[0]:2,
-                                              1:filtered_image[i].shape[1]:2]
-        filtered_image[i] = filtered_image[i]/quantization_Array[i]
+    #create an array that will contain the 4 different types of the image
+    LL=np.zeros((nrow,ncol))
+    LH=np.zeros((nrow,ncol))
+    HL=np.zeros((nrow,ncol))
+    HH=np.zeros((nrow,ncol))
+    LowPass_rows=np.zeros((nrow,ncol))
+    HighPass_rows=np.zeros((nrow,ncol))
+    filtered_image=[LL,LH,HL,HH]
+    #filtering the rows using a low pass and high pass filters 
+    for i in range(0,nrow):
+        LowPass_rows[i,:]=lfilter(LPF,1.0,image_array[i,:])
+        HighPass_rows[i,:]=lfilter(HPF,1.0,image_array[i,:])
+    for i in range(0,ncol):
+        LL[:,i]=lfilter(LPF,1.0,LowPass_rows[:,i])
+        LH[:,i]=lfilter(HPF,1.0,LowPass_rows[:,i])
+        HL[:,i]=lfilter(LPF,1.0,HighPass_rows[:,i])
+        HH[:,i]=lfilter(HPF,1.0,HighPass_rows[:,i])
+        
+    #downsampling by 2 on both rows and columns
+    for i in range(0,len(filtered_image)):
+        filtered_image[i]=filtered_image[i][1:filtered_image[i].shape[0]:2,1:filtered_image[i].shape[1]:2]
+        filtered_image[i]=filtered_image[i]/quantization_Array[i]
 
     return filtered_image
 
@@ -282,8 +284,35 @@ def generate_indecies_zigzag(rows=8, cols=8):
 
     return forReturn
 
+def dwt_serialize(filtered_image,output,length):
+    """
+    This function takes the output of the dwt_levels and serializes the list.
+    The serialization is done by order of apperance in the filtered_image
+    e.g.:[[LL,LH,HL,HH],LH,HL,HH] 
+    is serialized by taking the first element , if found to be a list then the elements within this list
+    would each be serialized and appended to to the output list, if found to be a numpy array then it would be serialized 
+    without further steps.
 
-def serialize(quantized_dct_image):
+    args:
+    filtered_image(list): This should be a list that can contain either numpy arrays or a list of numpy arrays 
+    output(list): should be passed as an empty list that will contain the final serialized data of the image
+    length(list):should be passed as an empty list that will contain the serialized length of each numpy array within the filtered_image
+
+
+    """
+    for i in filtered_image:
+        if isinstance(i,list):
+            #append the output of the recursion to the main arguments (output,length)
+            output_temp,length_temp=dwt_serialize(i,[],[])
+            output+=output_temp
+            length+=length_temp
+        else: 
+            #append the data of the serialized elements to the main arguments(output,length)
+            output=output+(serialize(i,True).tolist())
+            length=length+[len(serialize(i,True).tolist())]
+    return output,length
+
+def serialize(quantized_dct_image,jpeg2000):
     """
     Serializes the quantized image
     Args:
@@ -301,16 +330,25 @@ def serialize(quantized_dct_image):
     #  add that particular element to the list either at the beginning or
     #  at the end if sum of i and j is either even or odd respectively.
     #  Print the solution list as it is.
-    rows, columns = quantized_dct_image[0].shape
-    output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
-    step = 0
-    for matrix in quantized_dct_image:
+
+    if not jpeg2000:
+        rows, columns = quantized_dct_image[0].shape
+        output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
+        for matrix in quantized_dct_image:
+            step = 0
+            for i, j in generate_indecies_zigzag(rows, columns):
+                output[step] = matrix[i, j]
+                step += 1
+    else:
+        rows, columns = quantized_dct_image.shape
+        output = np.zeros(rows*columns, dtype='int')
+        step = 0
         for i, j in generate_indecies_zigzag(rows, columns):
-            output[step] = matrix[i, j]
+            output[step] = quantized_dct_image[i, j]
             step += 1
 
+    
     return output
-
 
 def run_length_code(serialized):
     """
