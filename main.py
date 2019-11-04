@@ -4,13 +4,13 @@ import encoder as e
 import decoder as d
 
 table_8_low = [[1,  1,  1,  1,  1,  2,  2,  4],
-                [1,  1,  1,  1,  1,  2,  2,  4],
-                [1,  1,  1,  1,  2,  2,  2,  4],
-                [1,  1,  1,  1,  2,  2,  4,  8],
-                [1,  1,  2,  2,  2,  2,  4,  8],
-                [2,  2,  2,  2,  2,  4,  8,  8],
-                [2,  2,  2,  4,  4,  8,  8,  16],
-                [4,  4,  4,  4,  8,  8, 16,  16]]
+               [1,  1,  1,  1,  1,  2,  2,  4],
+               [1,  1,  1,  1,  2,  2,  2,  4],
+               [1,  1,  1,  1,  2,  2,  4,  8],
+               [1,  1,  2,  2,  2,  2,  4,  8],
+               [2,  2,  2,  2,  2,  4,  8,  8],
+               [2,  2,  2,  4,  4,  8,  8,  16],
+               [4,  4,  4,  4,  8,  8, 16,  16]]
 table_8_high = [[1,    2,    4,    8,    16,   32,   64,   128],
                 [2,    4,    4,    8,    16,   32,   64,   128],
                 [4,    4,    8,    16,   32,   64,   128,  128],
@@ -42,19 +42,19 @@ def encode(image, box_size, quantization_table):
     # Reshape image and divide it into blocks
     image_array = e.reshape_image(image, box_size)
     sub_images, n_rows, n_cols = e.get_sub_images(image_array, box_size)
-    
+
     # Apply DCT
     dct_values = e.apply_dct_to_all(sub_images)
-    
+
     # Quantize DCT values
     quantized = e.quantize(dct_values, quantization_table)
-    
+
     # Serialize the values
     serialized = e.serialize(quantized)
-    
+
     # Perform run length encoding
     rlcoded = e.run_length_code(serialized)
-    
+
     # Perform huffman encoding
     huffcoded, code_dict = e.huffman_encode(rlcoded)
 
@@ -79,19 +79,19 @@ def decode(huffcoded, code_dict, n_rows, n_cols, box_size, quantization_table):
     """
     # Huffman Decoding
     rlcoded = d.huffman_decode(huffcoded, code_dict)
-    
+
     # Runlength decoding
     serialized = d.run_length_decode(rlcoded)
-    
+
     # Deserialize
-    quantized = d.deserialize(serialized, n_rows*n_cols, box_size)
-    
+    quantized = d.deserialize(serialized, n_rows*n_cols, box_size, box_size)
+
     # Dequantize
     subdivded_dct_values = d.dequantize(quantized, quantization_table)
-    
+
     # IDCT
     sub_images = d.apply_idct_to_all(subdivded_dct_values)
-    
+
     # Reconstructed image
     reconstructed_image = d.get_reconstructed_image(sub_images, n_rows, n_cols,
                                                     box_size)

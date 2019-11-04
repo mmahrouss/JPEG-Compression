@@ -25,7 +25,8 @@ def reshape_image(image, box_size=8):
 
     image_array = np.asarray(image)  # convert image to numpy array
     return image_array
-    
+
+
 def get_sub_images(image_array, box_size=8):
     """
     Gets a grayscale image and returns an array of (box_size, box_size)
@@ -128,7 +129,12 @@ def apply_dct_to_all(subdivded_image):
          with dct applied to all of them
     """
     basis = __basis_generator(subdivded_image.shape[1])
-    return np.array([dct(sub_image, basis) for sub_image in subdivded_image])
+    dct_divided_image = np.array([dct(sub_image, basis)
+                                  for sub_image in subdivded_image])
+    # offset_array = np.ones(
+    #     (subdivded_image.shape[1], subdivded_image.shape[1]))*128
+    # offset_array[0, 0] = 0  # DC values are not offset
+    return dct_divided_image  # + offset_array
 
 
 def quantize(dct_divided_image, quantization_table):
@@ -148,7 +154,7 @@ def quantize(dct_divided_image, quantization_table):
                      for sub_image in dct_divided_image])
 
 
-def generate_indecies_zigzag(rows=8, cols=8):
+def generate_indicies_zigzag(rows=8, cols=8):
     """
     Gets the dimensions of an array, typically a square matrix,
     and returns an array of indecies for zigzag traversal
@@ -218,14 +224,14 @@ def serialize(quantized_dct_image, jpeg2000=False):
         output = np.zeros(len(quantized_dct_image)*rows*columns, dtype='int')
         step = 0
         for matrix in quantized_dct_image:
-            for i, j in generate_indecies_zigzag(rows, columns):
+            for i, j in generate_indicies_zigzag(rows, columns):
                 output[step] = matrix[i, j]
                 step += 1
     else:
         rows, columns = quantized_dct_image.shape
         output = np.zeros(rows*columns, dtype='int')
         step = 0
-        for i, j in generate_indecies_zigzag(rows, columns):
+        for i, j in generate_indicies_zigzag(rows, columns):
             output[step] = quantized_dct_image[i, j]
             step += 1
 
@@ -243,7 +249,7 @@ def run_length_code(serialized):
           Encoded in decimal not binary [Kasem]
     """
     # Local Variables
-    max_len = 255  # we do not want numbers bigger than 255
+    max_len = 256  # we do not want numbers bigger than 255
     rlcoded = []
     zero_count = 0  # counter for zeros
     # logic
@@ -253,18 +259,18 @@ def run_length_code(serialized):
             if zero_count == max_len:
                 # max number of zeros reached
                 rlcoded.append(0)  # indicator of zeros
-                rlcoded.append(zero_count)  # number of zeros
+                rlcoded.append(zero_count-1)  # number of zeros
                 zero_count = 0
         else:
             if zero_count > 0:
                 rlcoded.append(0)
-                rlcoded.append(zero_count)
+                rlcoded.append(zero_count-1)
                 zero_count = 0
             rlcoded.append(number)
     # for handeling trailing zeros
     if zero_count > 0:
         rlcoded.append(0)
-        rlcoded.append(zero_count)
+        rlcoded.append(zero_count-1)
     # logic
     return np.asarray(rlcoded)
 

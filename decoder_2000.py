@@ -1,6 +1,8 @@
 import numpy as np
 from encoder_2000 import lfilter
 from decoder import deserialize
+from fractions import Fraction
+
 
 def idwt(filtered_image, quantization_Array):
     """
@@ -68,15 +70,16 @@ def idwt(filtered_image, quantization_Array):
     for i in range(0, LowPass_rows.shape[0]):
         HighPass_rows[i, :] = lfilter(HPF, HighPass_rows[i, :], HPF_center)
         LowPass_rows[i, :] = lfilter(LPF, LowPass_rows[i, :], LPF_center)
+    image_array = HighPass_rows + LowPass_rows
+    image_array = image_array.clip(0, 255).astype(np.uint8)
+    return image_array
 
-    return HighPass_rows + LowPass_rows
 
-
-def dwt_deserialize(serialized, length, quantization_Array):
+def dwt_deserialize(serialized, length, quantization_Array, aspect_ratio):
     """
         Deserializes and applied IDWT recursively
         recursively goes deep until four deserialized image subbands are
-        available 
+        available
         then returns the IDWT of the 4 subbands
     """
     quarter_len = int(len(serialized)/4)
@@ -87,11 +90,16 @@ def dwt_deserialize(serialized, length, quantization_Array):
             images.append(dwt_deserialize(serialized[quarter_len*i:
                                                      quarter_len*i +
                                                      quarter_len],
-                                          length[i], quantization_Array))
+                                          length[i], quantization_Array,
+                                          aspect_ratio))
         else:
             # else deserialize to get the subband
+            # get the dimensions back
+            rows = int(np.sqrt((quarter_len * aspect_ratio).numerator))
+            columns = int(np.sqrt((quarter_len / aspect_ratio).numerator))
             images.append(deserialize(serialized[quarter_len*i:
                                                  quarter_len*i + quarter_len],
-                                      1, int(np.sqrt(quarter_len))).squeeze())
+                                      1, rows,
+                                      columns).squeeze())
     # returns idwt of the four subbands
     return idwt(images, quantization_Array)

@@ -1,4 +1,4 @@
-from encoder import generate_indecies_zigzag, __basis_generator
+from encoder import generate_indicies_zigzag, __basis_generator
 import numpy as np
 from huffman import decode as h_decode
 
@@ -34,7 +34,7 @@ def run_length_decode(rlcoded):
             # found some zeros
             # add n number of zeros to result
             # where n is the subsequent number
-            serialized.extend([0]*rlcoded[i+1])
+            serialized.extend([0]*(rlcoded[i+1]+1))
             # take two steps
             i += 2
         else:
@@ -44,26 +44,28 @@ def run_length_decode(rlcoded):
     return np.asarray(serialized)
 
 
-def deserialize(serialized, n_blocks, box_size=8):
+def deserialize(serialized, n_blocks, n_rows=8, n_cols=8):
     """
     Removes serialization from quantized DCT values.
     Args:
         serialized (numpy ndarray): 1d array
           has shape (X*box_size*box_size*n_channels,)
         n_blocks (int)
-            number of blocks 
-        box_size (int)
-            size of box used in serialize function
+            number of blocks
+        n_rows (int)
+            number of rows used in serialize function
+        n_cols (int)
+            number of columns used in serialize function
+            n_rows = n_cols for DCT but not necessarily in DWT
     Returns:
         quantized (numpy ndarray): array of quantized DCT values.
-          - should have a shape of (X, box_size, box_size, n_channels)
+          - should have a shape of (X, n_rows, n_cols, n_channels)
            with dtype Int
     """
-    rows = columns = box_size
-    output = np.zeros((n_blocks, rows, columns))
+    output = np.zeros((n_blocks, n_rows, n_cols), dtype=np.int16)
     step = 0
     for matrix in output:
-        for i, j in generate_indecies_zigzag(box_size, box_size):
+        for i, j in generate_indicies_zigzag(n_rows, n_cols):
             matrix[i, j] = serialized[step]
             step += 1
 
@@ -118,14 +120,18 @@ def apply_idct_to_all(subdivded_dct_values):
         - should have a shape of (X, box_size, box_size, n_channels)
          with dct applied to all of them
     """
+    basis = __basis_generator(subdivded_dct_values.shape[1])
+    # offset_array = np.ones(
+    #     (subdivded_dct_values.shape[1], subdivded_dct_values.shape[1]))*128
+    # offset_array[0, 0] = 0  # DC values are not offset
+    # subdivded_dct_values = (subdivded_dct_values - offset_array)
+    divided_image = np.array([idct(sub_image, basis) for
+                              sub_image in subdivded_dct_values])
     # values can be slightly less than 0.0 e.g -0.5
     # or more than 255 like 255.5
     # that is why we clip.
-    # next we rounf that cast to an 8bit unsigned integer
-    basis = __basis_generator(subdivded_dct_values.shape[1])
-    return np.array([idct(sub_image, basis).clip(min=0, max=255).round()
-                     for
-                     sub_image in subdivded_dct_values]).astype(np.uint8)
+    # next we round that cast to an 8bit unsigned integer
+    return divided_image.clip(min=0, max=255).round().astype(np.uint8)
 
 
 def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
@@ -150,8 +156,7 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     for i in range(n_rows):
         for j in range(n_cols):
             image_reconstructed[i*box_size: i*box_size+box_size,
-                                j*box_size:j*box_size+box_size] =\
-                divided_image[c]
+                                j*box_size:j*box_size+box_size] = divided_image[c]
             c += 1
 
     # If you want to reconvert the output of this function into images,
@@ -159,4 +164,3 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
     # block_image = Image.fromarray(output[idx])
 
     return image_reconstructed
-
