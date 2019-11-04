@@ -85,7 +85,7 @@ def dequantize(quantized, quantization_table):
         dct_values (numpy ndarray): array of DCT values.
           same shape as dct_values but element type ints
     """
-    # element by ekement multiplication. Equivelant to np.multiply()
+    # element by element multiplication. Equivelant to np.multiply()
     return np.array([block * quantization_table for block in quantized])
 
 
@@ -121,10 +121,6 @@ def apply_idct_to_all(subdivded_dct_values):
          with dct applied to all of them
     """
     basis = __basis_generator(subdivded_dct_values.shape[1])
-    # offset_array = np.ones(
-    #     (subdivded_dct_values.shape[1], subdivded_dct_values.shape[1]))*128
-    # offset_array[0, 0] = 0  # DC values are not offset
-    # subdivded_dct_values = (subdivded_dct_values - offset_array)
     divided_image = np.array([idct(sub_image, basis) for
                               sub_image in subdivded_dct_values])
     # values can be slightly less than 0.0 e.g -0.5

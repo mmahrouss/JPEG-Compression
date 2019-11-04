@@ -131,10 +131,7 @@ def apply_dct_to_all(subdivded_image):
     basis = __basis_generator(subdivded_image.shape[1])
     dct_divided_image = np.array([dct(sub_image, basis)
                                   for sub_image in subdivded_image])
-    # offset_array = np.ones(
-    #     (subdivded_image.shape[1], subdivded_image.shape[1]))*128
-    # offset_array[0, 0] = 0  # DC values are not offset
-    return dct_divided_image  # + offset_array
+    return dct_divided_image
 
 
 def quantize(dct_divided_image, quantization_table):
