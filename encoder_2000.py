@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from encoder import serialize
-
+from fractions import Fraction  # python module for handling rational numbers
 
 
 def lfilter(taps, array, filter_centre):
@@ -26,7 +26,7 @@ def lfilter(taps, array, filter_centre):
     return np.convolve(arr, taps[::-1], 'valid')
 
 
-def check_image(image):
+def check_image(image, depth):
     """
     Check if the image has valid dimensions and if not would resize the image
     to valid dimensions
@@ -35,15 +35,19 @@ def check_image(image):
     Args:
         image (PIL): image input from the user
     Returns:
-        image_array()
+        image_array(np.ndarray): image array reshaped to be divisible
+                                by 2**depth
+        aspect_ratio (fractions.Fraction): rational number storing the aspect
+                                           ratio
     """
-    rows, cols = image.size
-    n_rows = round(rows/8) * 8
-    n_cols = round(cols/8) * 8
-    d = min(n_rows, n_cols)
-    image = image.resize((d, d))
+    cols, rows = image.size
+    divisor = 2**depth
+    n_rows = round(rows/divisor) * divisor
+    n_cols = round(cols/divisor) * divisor
+    # d = min(n_rows, n_cols)
+    image = image.resize((n_rows, n_cols))
     image_array = np.asarray(image)
-    return image_array
+    return image_array, Fraction(n_rows, n_cols)
 
 
 def dwt(image_array, quantization_Array):
@@ -113,11 +117,11 @@ def dwt(image_array, quantization_Array):
     return filtered_image
 
 
-def dwt_levels(filtered_image, Levels, quantization_Array):
+def dwt_levels(filtered_image, levels, quantization_Array):
     """
     Gets an array of 4 elements (the output of the dwt function)
     and return an array by replacing the elements of the list that are
-    addressed through the Levels array by dwt versions of them (replace 1
+    addressed through the levels array by dwt versions of them (replace 1
                                              element with a List of 4 elements)
 
     Args:
@@ -129,47 +133,39 @@ def dwt_levels(filtered_image, Levels, quantization_Array):
         quantization of each image
         should have 4 elemets
 
-        Levels (a list of lists): The parts of the image that will be
+        levels (a list of lists): The parts of the image that will be
         decomposed further.
-        The Levels list should look like this [[0],[0,1],[1]]
+        the levels should include a list of decompositions for one or more of
+        the 4 subbands
+        e.g. if I want to decompose subband 0 (LL)
+        I should sent [[0]]
+        if both 0 and 1 -> [[0], [1]]
+        this can be done in a recursive matter, add a similar list next to the
+        subband index
+        e.g. to decompose LL twize [[0, [[0]] ]]
+        to decompose LL then its LL and LH subbands -> [[0, [[0], [1]] ]]
+        it helps to think of it as a tree
         The above list means that the LL image would be decomposed again,
-        then the new LH that was created from the LL image would be decomposed
-        again, then the LH of the original image would be decomposed
-        Adressing should use this code below
+        then the new LL and LH that were created from the LL image would
+        be decomposed again,
         LL:0
         LH:1
         HL:2
         HH:3
 
     """
-    for i in range(0, len(Levels)):
-
-        if len(Levels[i]) > i+1:
-            raise Exception(
-                '''The Array is not sorted correctly.An element that does not
-                exist is called. The value of the subarray
-                was: {}'''.format(Levels[i]))
-
-        if len(Levels[i]) > 3:
-            raise Exception(
-                '''The length of each subarray should not exceed 3.
-                 The value of the subarray was: {}'''.format(Levels[i]))
-
-        if len(Levels[i]) == 1:
-
-            filtered_image[Levels[i][0]] = dwt(
-                filtered_image[Levels[i][0]], quantization_Array)
-
-        if len(Levels[i]) == 2:
-
-            filtered_image[Levels[i][0]][Levels[i][1]] = dwt(
-                filtered_image[Levels[i][0]][Levels[i][1]], quantization_Array)
-
-        if len(Levels[i]) == 3:
-
-            filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]] = dwt(
-                filtered_image[Levels[i][0]][Levels[i][1]][Levels[i][2]],
-                quantization_Array)
+    assert len(levels) <= 4
+    for level in levels:
+        filtered_image[level[0]] = dwt(
+            filtered_image[level[0]], quantization_Array)
+        try:
+            # continue recursively
+            dwt_levels(filtered_image[level[0]],
+                       level[1], quantization_Array)
+        except IndexError:
+            # happens when level has one element
+            # we are done, no recursive lists left
+            continue
 
 
 def dwt_serialize(filtered_image, output, length):
@@ -184,7 +180,7 @@ def dwt_serialize(filtered_image, output, length):
 
     args:
     filtered_image(list): This should be a list that can contain either numpy
-                            arrays or a list of numpy arrays 
+                            arrays or a list of numpy arrays
     output(list): should be passed as an empty list that will contain the final
                   serialized data of the image
     length(list):should be passed as an empty list that will contain the
