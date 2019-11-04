@@ -45,7 +45,7 @@ def check_image(image, depth):
     n_rows = round(rows/divisor) * divisor
     n_cols = round(cols/divisor) * divisor
     # d = min(n_rows, n_cols)
-    image = image.resize((n_rows, n_cols))
+    image = image.resize((n_cols, n_rows))
     image_array = np.asarray(image)
     return image_array, Fraction(n_rows, n_cols)
 
