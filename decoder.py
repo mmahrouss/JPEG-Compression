@@ -104,8 +104,8 @@ def idct(dct_values, basis):
 
     for x in range(b):
         for y in range(b):
-            outblock = outblock + dct_values[x, y] * basis(x, y)
-
+            outblock = outblock + dct_values[x,y] * basis(x,y) 
+            
     return outblock
 
 
@@ -145,16 +145,15 @@ def get_reconstructed_image(divided_image, n_rows, n_cols, box_size=8):
         of divided images.
 
     """
-    image_reconstructed = np.zeros((n_rows*box_size, n_cols*box_size),
-                                   dtype=np.uint8)
+    image_reconstructed = np.zeros((n_rows*box_size, n_cols*box_size), dtype=np.uint8)
     c = 0
     # break down the image into blocks
     for i in range(n_rows):
         for j in range(n_cols):
-            image_reconstructed[i*box_size: i*box_size+box_size,
+            image_reconstructed[i*box_size: i*box_size+box_size, 
                                 j*box_size:j*box_size+box_size] = divided_image[c]
             c += 1
-
+            
     # If you want to reconvert the output of this function into images,
     #  use the following line:
     # block_image = Image.fromarray(output[idx])
