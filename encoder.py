@@ -29,8 +29,7 @@ def reshape_image(image, box_size=8):
 
 def get_sub_images(image_array, box_size=8):
     """
-    Gets a grayscale image and returns an array of (box_size, box_size)
-    elements
+    Gets a grayscale image and returns an array of (box_size, box_size) elements
     Args:
         image_array (numpy ndarray): Image input we want to divide to box
                                      sub_images.
